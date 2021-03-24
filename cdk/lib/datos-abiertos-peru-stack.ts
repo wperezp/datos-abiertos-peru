@@ -5,6 +5,7 @@ import * as lambda from '@aws-cdk/aws-lambda'
 import { Rule, RuleTargetInput, Schedule } from '@aws-cdk/aws-events'
 import { LambdaFunction } from '@aws-cdk/aws-events-targets'
 import { Duration } from '@aws-cdk/core';
+import { DAPFetchEvents } from './dap-events-construct'
 
 export class DatosAbiertosPeruStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -43,15 +44,6 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     
     fetchFunction.addLayers(fetchRequestLayer)
 
-    const fnTarget = new LambdaFunction(fetchFunction, {
-      event: RuleTargetInput.fromObject({
-        asset_url: 'https://cloud.minsa.gob.pe/s/ZgXoXqK2KLjRLxD/download',
-        asset_filename: 'minsa_vacunacion.csv'
-      })
-    })
-    const fetchTrigger = new Rule(this, 'dap_trigger_event', {
-      schedule: Schedule.cron({ minute: '50', hour: '22' }),
-      targets: [fnTarget]
-    })
+    new DAPFetchEvents(this, 'fetch_events', fetchFunction)
   }
 }
