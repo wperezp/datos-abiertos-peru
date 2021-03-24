@@ -1,11 +1,12 @@
 import boto3
 import requests
 import hashlib
+import os
 
 
 def is_newer_version(asset_name: str, obj_bytes: bytes) -> bool:
     dynamodb = boto3.resource('dynamodb')
-    hashes_table = dynamodb.Table('dap_md5_hashes')
+    hashes_table = dynamodb.Table(os.environ['DDB_HASHES_TABLE'])
     obj_md5 = hashlib.md5(obj_bytes).hexdigest()
     response = hashes_table.get_item(
         Key={
@@ -29,15 +30,10 @@ def is_newer_version(asset_name: str, obj_bytes: bytes) -> bool:
 
 
 def get_dataset(event, context):
-    asset_url = 'https://cloud.minsa.gob.pe/s/ZgXoXqK2KLjRLxD/download'
-    asset_name = 'minsa_vacunacion.csv'
-    # asset_name = event['asset_name']
-    # asset_url = event['asset_url']
+    asset_filename = event['asset_filename']
+    asset_url = event['asset_url']
     response = requests.get(asset_url)
-    if is_newer_version(asset_name, response.content):
+    if is_newer_version(asset_filename, response.content):
         s3 = boto3.resource('s3')
-        bucket = s3.Bucket('dap-data-bucket')
-        bucket.put_object(Key=f'raw/{asset_name}', Body=response.content)
-
-
-get_dataset()
+        bucket = s3.Bucket(os.environ['S3_DATA_BUCKET'])
+        bucket.put_object(Key=f'raw/{asset_filename}', Body=response.content)

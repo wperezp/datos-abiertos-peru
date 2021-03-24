@@ -2,7 +2,7 @@ import * as cdk from '@aws-cdk/core';
 import * as s3 from '@aws-cdk/aws-s3';
 import * as dynamodb from '@aws-cdk/aws-dynamodb'
 import * as lambda from '@aws-cdk/aws-lambda'
-import { Rule, Schedule } from '@aws-cdk/aws-events'
+import { Rule, RuleTargetInput, Schedule } from '@aws-cdk/aws-events'
 import { LambdaFunction } from '@aws-cdk/aws-events-targets'
 import { Duration } from '@aws-cdk/core';
 
@@ -24,7 +24,7 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     })
 
     const fetchFunction = new lambda.Function(this, 'dap_fn_fetch', {
-      handler: 'minsa_vacunacion.get_dataset',
+      handler: 'fetch_assets.get_dataset',
       runtime: lambda.Runtime.PYTHON_3_8,
       code: lambda.Code.fromAsset('../src/fetch'),
       memorySize: 512,
@@ -43,9 +43,14 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     
     fetchFunction.addLayers(fetchRequestLayer)
 
-    const fnTarget = new LambdaFunction(fetchFunction)
+    const fnTarget = new LambdaFunction(fetchFunction, {
+      event: RuleTargetInput.fromObject({
+        asset_url: 'https://cloud.minsa.gob.pe/s/ZgXoXqK2KLjRLxD/download',
+        asset_filename: 'minsa_vacunacion.csv'
+      })
+    })
     const fetchTrigger = new Rule(this, 'dap_trigger_event', {
-      schedule: Schedule.cron({ minute: '24', hour: '5' }),
+      schedule: Schedule.cron({ minute: '50', hour: '22' }),
       targets: [fnTarget]
     })
   }
