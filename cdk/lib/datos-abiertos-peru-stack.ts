@@ -2,10 +2,9 @@ import * as cdk from '@aws-cdk/core';
 import * as s3 from '@aws-cdk/aws-s3';
 import * as dynamodb from '@aws-cdk/aws-dynamodb'
 import * as lambda from '@aws-cdk/aws-lambda'
-import { Rule, RuleTargetInput, Schedule } from '@aws-cdk/aws-events'
-import { LambdaFunction } from '@aws-cdk/aws-events-targets'
 import { Duration } from '@aws-cdk/core';
-import { DAPFetchEvents } from './dap-events-construct'
+import { DAPDailyFetchEvents } from './daily-fetch-events'
+import { DAPSingleFetchContainer } from './single-fetch-events';
 
 export class DatosAbiertosPeruStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -28,8 +27,8 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       handler: 'fetch_assets.get_dataset',
       runtime: lambda.Runtime.PYTHON_3_8,
       code: lambda.Code.fromAsset('../src/fetch'),
-      memorySize: 512,
-      timeout: Duration.minutes(5),
+      memorySize: 1024,
+      timeout: Duration.minutes(10),
       environment: {
         "DDB_HASHES_TABLE": hashesTable.tableName,
         "S3_DATA_BUCKET": dataBucket.bucketName
@@ -44,6 +43,7 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     
     fetchFunction.addLayers(fetchRequestLayer)
 
-    new DAPFetchEvents(this, 'fetch_events', fetchFunction)
+    new DAPDailyFetchEvents(this, 'dailyfetch_events', fetchFunction)
+    new DAPSingleFetchContainer(this, 'singlefetch')
   }
 }

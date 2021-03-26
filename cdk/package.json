@@ -12,7 +12,9 @@
   },
   "devDependencies": {
     "@aws-cdk/assert": "1.94.1",
+    "@aws-cdk/aws-ecr-assets": "^1.94.1",
     "@types/jest": "^26.0.10",
+    "@types/js-yaml": "^4.0.0",
     "@types/node": "10.17.27",
     "aws-cdk": "1.94.1",
     "jest": "^26.4.2",
@@ -27,6 +29,7 @@
     "@aws-cdk/aws-lambda": "^1.94.1",
     "@aws-cdk/aws-s3": "^1.94.1",
     "@aws-cdk/core": "1.94.1",
+    "js-yaml": "^3.14.1",
     "source-map-support": "^0.5.16"
   }
 }
