@@ -5,6 +5,7 @@ import os
 import sys
 import yaml
 import math
+from hurry.filesize import size
 
 
 def is_newer_version(asset_name: str, obj_bytes: bytes) -> bool:
@@ -32,26 +33,54 @@ def is_newer_version(asset_name: str, obj_bytes: bytes) -> bool:
     return is_new
 
 
+def asset_exists(asset_name: str) -> bool:
+    dynamodb = boto3.resource('dynamodb')
+    hashes_table = dynamodb.Table(os.environ['DDB_HASHES_TABLE'])
+    response = hashes_table.get_item(
+        Key={
+            'asset_name': asset_name
+        }
+    )
+    try:
+        response_item = response['Item']
+        return response_item is not None
+    except KeyError as e:
+        return False
+
+
 def fetch_all_datasets(f_catalog: dict):
     for key, item in f_catalog.items():
+        asset_name = item['Name']
         asset_filename = item['Filename']
         asset_url = item['URI']
-        print(f"Downloading {key} from {asset_url}")
-        response = requests.get(asset_url, stream=True)
-        full_content = bytes(0)
+        print(f"{key} Asset name: {asset_name}")
+        if asset_exists(asset_name):
+            print(f"{key} Already uploaded")
+            continue
+        print(f"Downloading from {asset_url}")
+        # response = requests.get(asset_url, stream=True)
+        response = requests.get(asset_url)
+        # full_content = bytes(0)
         total_length = response.headers.get('Content-Length')
         if total_length is not None:
-            dl = 0
-            for data in response.iter_content(chunk_size=4096):
-                dl += len(data)
-                full_content += data
-                sys.stdout.write(f"\r{math.floor((dl*100)/int(total_length))} %")
+            print(f'File size: {size(int(total_length))}')
+            # dl = 0
+            # prg = 0
+            # for data in response.iter_content(chunk_size=None):
+            #     dl += len(data)
+            #     full_content += data
+            #     avance = math.floor((dl*100)/int(total_length))
+            #     if avance > prg:
+            #         print(f"{avance} %")
+            #         prg = avance
         else:
-            full_content = response.content
-        if is_newer_version(item['Name'], full_content):
+            print('Total file length not available in headers')
+        full_content = response.content
+        if is_newer_version(asset_name, full_content):
             s3 = boto3.resource('s3')
             bucket = s3.Bucket(os.environ['S3_DATA_BUCKET'])
             bucket.put_object(Key=f'raw/{asset_filename}', Body=full_content)
+        del full_content
 
 
 def parse_catalog(filename: str):

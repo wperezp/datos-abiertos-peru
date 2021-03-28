@@ -2,3 +2,11 @@ MidisBono600:
   Name: midis_bono600
   URI: https://www.datosabiertos.gob.pe/sites/default/files/Bono600_DU_010_2021.zip
   Filename: midis_bono600.zip
+MidisBonoUniversal:
+  Name: midis_bonouniversal
+  URI: https://www.datosabiertos.gob.pe/sites/default/files/BonoUniversal_DU_098_2020.zip
+  Filename: midis_bonouniversal.zip
+MidisBonoFamiliarUniversal:
+  Name: midis_bonofamiliaruniversal
+  URI: https://www.datosabiertos.gob.pe/sites/default/files/BFU_DU_052_2020_Tramo2.zip
+  Filename: midis_bonofamiliaruniversal.zip

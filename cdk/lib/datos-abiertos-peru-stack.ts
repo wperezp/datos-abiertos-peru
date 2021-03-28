@@ -4,7 +4,7 @@ import * as dynamodb from '@aws-cdk/aws-dynamodb'
 import * as lambda from '@aws-cdk/aws-lambda'
 import { Duration } from '@aws-cdk/core';
 import { DAPDailyFetchEvents } from './daily-fetch-events'
-import { DAPSingleFetchContainer } from './single-fetch-events';
+import { DAPSingleFetchContainer } from './single-fetch-container';
 
 export class DatosAbiertosPeruStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -24,9 +24,9 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     })
 
     const fetchFunction = new lambda.Function(this, 'dap_fn_fetch', {
-      handler: 'fetch_assets.get_dataset',
+      handler: 'daily_fetch.get_dataset',
       runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset('../src/fetch'),
+      code: lambda.Code.fromAsset('../src/fetch/daily'),
       memorySize: 1024,
       timeout: Duration.minutes(10),
       environment: {
@@ -44,6 +44,12 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     fetchFunction.addLayers(fetchRequestLayer)
 
     new DAPDailyFetchEvents(this, 'dailyfetch_events', fetchFunction)
-    new DAPSingleFetchContainer(this, 'singlefetch')
+    const singleFetchFargate = new DAPSingleFetchContainer(this, 'singleFetch', {
+      S3_DATA_BUCKET: dataBucket.bucketName,
+      DDB_HASHES_TABLE: hashesTable.tableName
+    })
+
+    hashesTable.grantReadWriteData(singleFetchFargate.taskDefinition.taskRole)
+    dataBucket.grantWrite(singleFetchFargate.taskDefinition.taskRole)
   }
 }
