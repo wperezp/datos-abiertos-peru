@@ -12,3 +12,9 @@ cdk.out
 
 # macOS
 *.DS_Store
+
+# IntelliJ
+.idea/*
+
+# app
+src/fetch/standalone/*.yml
