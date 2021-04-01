@@ -15,6 +15,10 @@ jobs:
       - run: cd cdk/
       - node/install-packages
       - run: npm run build
+  deploy:
+    executor: node/default
+    steps:
+      - run: echo Hey
 
 workflows:
   development:
