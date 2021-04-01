@@ -12,9 +12,17 @@ jobs:
         type: string
     steps:
       - checkout
-      - run: cd cdk/
-      - node/install-packages
-      - run: npm run build
+      - node/install-packages:
+          app-dir: cdk/
+      - run: 
+          name: Typescript compile
+          command: |
+            cd cdk/
+            npm run build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
   deploy:
     executor: node/default
     steps:
