@@ -1,7 +1,28 @@
 version: 2.1
 orbs:
-  node: circleci/node@3.0.0
+  aws-cli: circleci/aws-cli@1.3.2
+  node: circleci/node@4.2.1
+
+jobs:
+  build:
+    executor: node/default
+    parameters:
+      region:
+        default: us-east-1
+        type: string
+    steps:
+      - checkout
+      - run: cd cdk/
+      - node/install-packages
+      - run: npm run build
+
 workflows:
-  node-tests:
+  development:
+    unless:
+      and:
+      - equal: [main, <<pipeline.git.branch>>]
     jobs:
-      - node/test
+      - build
+      - deploy:
+          requires:
+            - build

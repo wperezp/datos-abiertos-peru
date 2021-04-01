@@ -10,11 +10,11 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
     
-    const dataBucket = new s3.Bucket(this, 'dap-data', {
+    const dataBucket = new s3.Bucket(this, 'source-data', {
       versioned: false
     })
 
-    const hashesTable = new dynamodb.Table(this, 'dap_md5_hashes', {
+    const hashesTable = new dynamodb.Table(this, 'md5_hashes', {
       partitionKey: {
         name: 'asset_name',
         type: dynamodb.AttributeType.STRING
@@ -23,7 +23,7 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       writeCapacity: 1,
     })
 
-    const fetchFunction = new lambda.Function(this, 'dap_fn_fetch', {
+    const fetchFunction = new lambda.Function(this, 'fnDailyFetch', {
       handler: 'daily_fetch.get_dataset',
       runtime: lambda.Runtime.PYTHON_3_8,
       code: lambda.Code.fromAsset('../src/fetch/daily'),
@@ -39,11 +39,12 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     dataBucket.grantWrite(fetchFunction)
 
     const fetchRequestLayer = lambda.LayerVersion
-      .fromLayerVersionArn(this, 'dap_layer_requests', 'arn:aws:lambda:us-east-2:770693421928:layer:Klayers-python38-requests-html:37')
+      .fromLayerVersionArn(this, 'fnLayerRequests', 'arn:aws:lambda:us-east-2:770693421928:layer:Klayers-python38-requests-html:37')
     
     fetchFunction.addLayers(fetchRequestLayer)
 
-    new DAPDailyFetchEvents(this, 'dailyfetch_events', fetchFunction)
+    new DAPDailyFetchEvents(this, 'dailyFetch_Events', fetchFunction)
+    
     const singleFetchFargate = new DAPSingleFetchContainer(this, 'singleFetch', {
       S3_DATA_BUCKET: dataBucket.bucketName,
       DDB_HASHES_TABLE: hashesTable.tableName
