@@ -10,6 +10,8 @@ jobs:
       region:
         default: us-east-1
         type: string
+    environment:
+      AWS_REGION: <<parameters.region>>
     steps:
       - checkout
       - node/install-packages:
@@ -28,7 +30,7 @@ jobs:
     steps:
       - attach_workspace:
           at: .
-      - run: ls
+      - run: env
 
 workflows:
   development:
