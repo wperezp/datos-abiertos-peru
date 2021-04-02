@@ -52,3 +52,14 @@ workflows:
       - deploy:
           requires:
             - build
+  production:
+    when:
+      and:
+      - equal: [main, <<pipeline.git.branch>>]
+    jobs:
+      - build
+      - deploy:
+          parameters:
+            region: sa-east-1
+          requires:
+            - build
