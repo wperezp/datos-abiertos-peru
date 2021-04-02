@@ -27,6 +27,7 @@ jobs:
         type: string
     environment:
       AWS_REGION: <<parameters.region>>
+      CDK_NEW_BOOTSTRAP: 1
     steps:
       - attach_workspace:
           at: .
