@@ -6,12 +6,6 @@ orbs:
 jobs:
   build:
     executor: node/default
-    parameters:
-      region:
-        default: us-east-1
-        type: string
-    environment:
-      AWS_REGION: <<parameters.region>>
     steps:
       - checkout
       - node/install-packages:
@@ -27,10 +21,18 @@ jobs:
             - .
   deploy:
     executor: node/default
+    parameters:
+      region:
+        default: us-east-1
+        type: string
+    environment:
+      AWS_REGION: <<parameters.region>>
     steps:
       - attach_workspace:
           at: .
-      - run: env
+      - run: 
+          name: CDK deploy
+          command: cd cdk/ && cdk deploy --require-approval never
 
 workflows:
   development:
