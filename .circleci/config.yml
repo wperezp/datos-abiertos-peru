@@ -32,6 +32,11 @@ jobs:
           at: .
       - setup_remote_docker:
           docker_layer_caching: false
+      - run:
+          name: Attach catalog
+          command: |
+            mv catalogs/single_upload.yml fetch/standalone/catalog.yml
+          working_directory: src
       - run: 
           name: CDK deploy
           command: npm run deploy
