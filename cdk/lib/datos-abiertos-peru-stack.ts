@@ -38,13 +38,14 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     hashesTable.grantReadWriteData(fetchFunction)
     dataBucket.grantWrite(fetchFunction)
 
-    const fetchRequestLayer = lambda.LayerVersion
-      .fromLayerVersionArn(this, 'fnLayerRequests', 'arn:aws:lambda:us-east-2:770693421928:layer:Klayers-python38-requests-html:37')
+    const layerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`
+
+    const fetchRequestLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerRequests', layerArn)
     
     fetchFunction.addLayers(fetchRequestLayer)
 
     new DAPDailyFetchEvents(this, 'dailyFetch_Events', fetchFunction)
-    
+
     const singleFetchFargate = new DAPSingleFetchContainer(this, 'singleFetch', {
       S3_DATA_BUCKET: dataBucket.bucketName,
       DDB_HASHES_TABLE: hashesTable.tableName
