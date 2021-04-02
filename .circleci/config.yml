@@ -59,7 +59,6 @@ workflows:
     jobs:
       - build
       - deploy:
-          parameters:
-            region: sa-east-1
+          region: sa-east-1
           requires:
             - build
