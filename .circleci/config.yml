@@ -35,8 +35,8 @@ jobs:
       - run:
           name: Attach catalogs
           command: |
-            mv catalogs/daily.yml invoke/daily.yml
-            mv catalogs/single_upload.yml fetch/standalone/catalog.yml
+            cp catalogs/daily.yml invoke/daily.yml
+            cp catalogs/single_upload.yml fetch/standalone/catalog.yml
           working_directory: src
       - run: 
           name: CDK deploy
