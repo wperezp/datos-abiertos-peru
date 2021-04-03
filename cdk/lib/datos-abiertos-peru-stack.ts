@@ -23,7 +23,7 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       writeCapacity: 1,
     })
 
-    const fetchFunction = new lambda.Function(this, 'fnDailyFetch', {
+    const fetchFn = new lambda.Function(this, 'fnDailyFetch', {
       handler: 'daily_fetch.get_dataset',
       runtime: lambda.Runtime.PYTHON_3_8,
       code: lambda.Code.fromAsset('../src/fetch/daily'),
@@ -35,16 +35,31 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       }
     })
 
-    hashesTable.grantReadWriteData(fetchFunction)
-    dataBucket.grantWrite(fetchFunction)
+    hashesTable.grantReadWriteData(fetchFn)
+    dataBucket.grantWrite(fetchFn)
 
-    const layerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`
+    const reqLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`
+    const fetchRequestLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerRequests', reqLayerArn)
+    fetchFn.addLayers(fetchRequestLayer)
 
-    const fetchRequestLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerRequests', layerArn)
-    
-    fetchFunction.addLayers(fetchRequestLayer)
+    const invokeFetchFn = new lambda.Function(this, 'fnInvokeFetch', {
+      handler: 'invoke.handler',
+      runtime: lambda.Runtime.PYTHON_3_8,
+      code: lambda.Code.fromAsset('../src/invoke'),
+      environment: {
+        "FETCH_FUNCTION_NAME": fetchFn.functionName
+      },
+      memorySize: 200,
+      timeout: Duration.minutes(1)
+    })
 
-    new DAPDailyFetchEvents(this, 'dailyFetch_Events', fetchFunction)
+    const yamlLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-PyYAML:4`
+    const invokeYamlLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerYAML', yamlLayerArn)
+    invokeFetchFn.addLayers(invokeYamlLayer)
+
+    fetchFn.grantInvoke(invokeFetchFn)
+
+    new DAPDailyFetchEvents(this, 'dailyFetch_Events', fetchFn)
 
     const singleFetchFargate = new DAPSingleFetchContainer(this, 'singleFetch', {
       S3_DATA_BUCKET: dataBucket.bucketName,
