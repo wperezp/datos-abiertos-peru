@@ -47,8 +47,10 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_8,
       code: lambda.Code.fromAsset('../src/invoke'),
       environment: {
-        FETCH_FUNCTION_NAME: fetchFn.functionName
-      }
+        "FETCH_FUNCTION_NAME": fetchFn.functionName
+      },
+      memorySize: 200,
+      timeout: Duration.minutes(1)
     })
 
     const yamlLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-PyYAML:4`

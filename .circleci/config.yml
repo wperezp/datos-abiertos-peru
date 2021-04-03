@@ -51,6 +51,7 @@ workflows:
     jobs:
       - build
       - deploy:
+          region: us-east-1
           requires:
             - build
   production:
@@ -60,6 +61,6 @@ workflows:
     jobs:
       - build
       - deploy:
-          region: sa-east-1
+          region: us-east-2
           requires:
             - build

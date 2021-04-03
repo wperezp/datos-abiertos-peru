@@ -2,6 +2,7 @@ import boto3
 import yaml
 import os
 import sys
+import json
 
 
 def parse_catalog(filename: str):
@@ -10,8 +11,9 @@ def parse_catalog(filename: str):
 
 
 def invoke_for_all_assets(catalog: dict, function_name: str) :
-    lambda_client = boto3.resource('lambda')
+    lambda_client = boto3.client('lambda')
     for key, item in catalog.items():
+        print(f"Invoke {item['Name']}")
         asset_filename = item['Filename']
         asset_url = item['URI']
         payload = {
@@ -21,7 +23,7 @@ def invoke_for_all_assets(catalog: dict, function_name: str) :
         lambda_client.invoke(
             FunctionName=function_name,
             InvocationType='Event',
-            Payload=payload
+            Payload=json.dumps(payload).encode('utf-8')
         )
 
 
