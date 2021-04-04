@@ -2,6 +2,7 @@ import * as cdk from '@aws-cdk/core';
 import * as s3 from '@aws-cdk/aws-s3';
 import * as dynamodb from '@aws-cdk/aws-dynamodb'
 import * as lambda from '@aws-cdk/aws-lambda'
+import * as ecs from '@aws-cdk/aws-ecs'
 import { Duration } from '@aws-cdk/core';
 import { DAPScheduledFetchEvents } from './daily-fetch-events'
 import { DAPFetchContainer } from './single-fetch-container';
@@ -23,6 +24,17 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       writeCapacity: 1,
     })
 
+    const ecsCluster = new ecs.Cluster(this, 'ecsCluster', {containerInsights: true})
+
+    const fetchFargate = new DAPFetchContainer(this, 'singleFetch', {
+      S3_DATA_BUCKET: dataBucket.bucketName,
+      DDB_HASHES_TABLE: hashesTable.tableName,
+      EXEC_MODE: "FARGATE"
+    })
+
+    hashesTable.grantReadWriteData(fetchFargate.taskDefinition.taskRole)
+    dataBucket.grantWrite(fetchFargate.taskDefinition.taskRole)
+
     const fetchFn = new lambda.Function(this, 'fnScheduledFetch', {
       handler: 'fetch.lambda_handler',
       runtime: lambda.Runtime.PYTHON_3_8,
@@ -31,7 +43,9 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       timeout: Duration.minutes(15),
       environment: {
         "DDB_HASHES_TABLE": hashesTable.tableName,
-        "S3_DATA_BUCKET": dataBucket.bucketName
+        "S3_DATA_BUCKET": dataBucket.bucketName,
+        "TASK_DEFINITION": fetchFargate.taskDefinition.taskDefinitionArn,
+        "CLUSTER_NAME": ecsCluster.clusterName
       }
     })
 
@@ -61,18 +75,6 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     fetchFn.grantInvoke(invokeFetchFn)
 
     new DAPScheduledFetchEvents(this, 'scheduledFetch_Events', fetchFn)
-
-    const fetchFargate = new DAPFetchContainer(this, 'singleFetch', {
-      S3_DATA_BUCKET: dataBucket.bucketName,
-      DDB_HASHES_TABLE: hashesTable.tableName,
-      EXEC_MODE: "FARGATE"
-    })
-
-    hashesTable.grantReadWriteData(fetchFargate.taskDefinition.taskRole)
-    dataBucket.grantWrite(fetchFargate.taskDefinition.taskRole)
-
-    fetchFn.addEnvironment("TASK_DEFINITION", fetchFargate.taskDefinition.taskDefinitionArn)
-    fetchFn.addEnvironment("CLUSTER_NAME", fetchFargate.cluster.clusterName)
 
   }
 }
