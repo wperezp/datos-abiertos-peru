@@ -57,7 +57,12 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     grantEcsRunTask.addActions('ecs:RunTask')
     grantEcsRunTask.addResources(fetchFargate.taskDefinition.taskDefinitionArn)
 
+    const grantPassRole = new iam.PolicyStatement();
+    grantPassRole.addActions('iam:PassRole')
+    grantPassRole.addResources(fetchFargate.taskDefinition.executionRole!.roleArn)
+
     fetchFn.addToRolePolicy(grantEcsRunTask)
+    fetchFn.addToRolePolicy(grantPassRole)
 
     const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`
     const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerRequests', requestsLayerArn)
