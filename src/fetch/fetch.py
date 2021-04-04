@@ -78,7 +78,7 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, invoke_f
                 prg = int(done * 100)
                 print(f"{prg}% {round(speed/1000000, 2)} Mbps ETA {int(eta)}s")
             if count == 10 and invoke_fargate:  # Evaluar si disparar fargate despues de los primeros 10MB de descarga
-                remaining = int(lambda_context.get_remaining_time_in_milis()/1000)
+                remaining = int(lambda_context.get_remaining_time_in_millis()/1000)
                 if (eta + 30) > remaining:
                     print("Invoke fargate")
                     return
