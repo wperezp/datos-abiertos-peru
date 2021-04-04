@@ -46,7 +46,8 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
         "DDB_HASHES_TABLE": hashesTable.tableName,
         "S3_DATA_BUCKET": dataBucket.bucketName,
         "TASK_DEFINITION": fetchFargate.taskDefinition.taskDefinitionArn,
-        "CLUSTER_NAME": ecsCluster.clusterName
+        "CLUSTER_NAME": ecsCluster.clusterName,
+        "CONTAINER_NAME": fetchFargate.container.containerName
       }
     })
 

@@ -46,7 +46,7 @@ def asset_exists(asset_name: str) -> bool:
         return False
 
 
-def invoke_fargate(task_definition: str, cluster_name: str, asset_name: str, asset_filename: str,
+def invoke_fargate(task_definition: str, container_name: str, cluster_name: str, asset_name: str, asset_filename: str,
                    asset_url: str):
     ecs_client = boto3.client('ecs')
     response = ecs_client.run_task(
@@ -55,6 +55,7 @@ def invoke_fargate(task_definition: str, cluster_name: str, asset_name: str, ass
         overrides={
             'containerOverrides': [
                 {
+                    'name': container_name,
                     'environment': [
                         {'name': 'ASSET_NAME', 'value': asset_name},
                         {'name': 'ASSET_FILENAME', 'value': asset_filename},
@@ -125,9 +126,10 @@ def lambda_handler(event, context):
     upload_only_once = event.get('cron_expression') is None
     task_definition = os.environ['TASK_DEFINITION']
     cluster_name = os.environ['CLUSTER_NAME']
+    container_name = os.environ['CONTAINER_NAME']
     function_finished = fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once, context, True)
     if not function_finished:
-        invoke_fargate(task_definition, cluster_name, asset_name, asset_filename, asset_url)
+        invoke_fargate(task_definition, container_name, cluster_name, asset_name, asset_filename, asset_url)
 
 
 if __name__ == '__main__':
