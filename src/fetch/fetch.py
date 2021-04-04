@@ -56,9 +56,9 @@ def invoke_fargate(task_definition: str, cluster_name: str, asset_name: str, ass
             'containerOverrides': [
                 {
                     'environment': [
-                        {'ASSET_NAME': asset_name},
-                        {'ASSET_FILENAME': asset_filename},
-                        {'ASSET_URL': asset_url}
+                        {'name': 'ASSET_NAME', 'value': asset_name},
+                        {'name': 'ASSET_FILENAME', 'value': asset_filename},
+                        {'name': 'ASSET_URL', 'value': asset_url}
                     ]
                 }
             ]
@@ -81,7 +81,7 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_o
     total_length = response.headers.get('Content-Length')
     if total_length is not None:
         total_length = int(total_length)
-        print(f'File size: {round(float(total_length)/1048576, 2)}M')
+        print(f'File size: {round(float(total_length) / 1048576, 2)}M')
         dl = 0
         prg = 0
         chunk_size = 1048576
@@ -90,16 +90,16 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_o
         for data in response.iter_content(chunk_size=chunk_size):
             dl += len(data)
             full_content += data
-            done = float(dl)/total_length
+            done = float(dl) / total_length
             elapsed = time.perf_counter() - start
             speed = (float(dl)) / elapsed
-            eta = float(total_length - dl)/speed
+            eta = float(total_length - dl) / speed
             count += 1
             if prg < int(done * 100):  # Imprimir cada 1% por lo menos
                 prg = int(done * 100)
-                print(f"{prg}% {round(speed/1000000, 2)} Mbps ETA {int(eta)}s")
+                print(f"{prg}% {round(speed / 1000000, 2)} Mbps ETA {int(eta)}s")
             if count == 10 and invoke_fargate:  # Evaluar si disparar fargate despues de los primeros 10MB de descarga
-                remaining = int(lambda_context.get_remaining_time_in_millis()/1000)
+                remaining = int(lambda_context.get_remaining_time_in_millis() / 1000)
                 if (eta + 30) > remaining:
                     print("ETA is longer than remaining time for this function. Transfer to Fargate")
                     return False
@@ -145,5 +145,3 @@ if __name__ == '__main__':
             asset_url = item['URI']
             upload_only_once = item.get('CronExpression') is None
             fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once)
-
-
