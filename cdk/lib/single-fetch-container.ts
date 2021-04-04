@@ -1,8 +1,5 @@
 import { Construct } from "@aws-cdk/core";
-import { FargateTaskDefinition, ContainerImage, Cluster, LogDriver } from '@aws-cdk/aws-ecs'
-import { RunTask } from 'cdk-fargate-run-task'
-import { Repository } from '@aws-cdk/aws-ecr'
-import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
+import { FargateTaskDefinition, ContainerImage, LogDriver } from '@aws-cdk/aws-ecs'
 
 
 export class DAPFetchContainer extends Construct {

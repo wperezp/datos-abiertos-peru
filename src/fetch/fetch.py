@@ -46,8 +46,30 @@ def asset_exists(asset_name: str) -> bool:
         return False
 
 
-def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, invoke_fargate=False, task_definition=None,
-                  cluster_name=None, lambda_context=None, upload_only_once=False):
+def invoke_fargate(task_definition: str, cluster_name: str, asset_name: str, asset_filename: str,
+                   asset_url: str, upload_only_once: bool):
+    ecs_client = boto3.client('ecs')
+    response = ecs_client.run_task(
+        cluster=cluster_name,
+        task_definition=task_definition,
+        overrides={
+            'containerOverrides': [
+                {
+                    'environment': [
+                        {'ASSET_NAME': asset_name},
+                        {'ASSET_FILENAME': asset_filename},
+                        {'ASSET_URL': asset_url},
+                        {'UPLOAD_ONLY_ONCE': int(upload_only_once)}
+                    ]
+                }
+            ]
+        }
+    )
+    print(response)
+
+
+def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_only_once=False, lambda_context=None,
+                  invoke_fargate=False):
     print(f"Asset name: {asset_name}")
     # if upload_only_once:
     #     print(f"Checking if it's already uploaded")
@@ -80,8 +102,8 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, invoke_f
             if count == 10 and invoke_fargate:  # Evaluar si disparar fargate despues de los primeros 10MB de descarga
                 remaining = int(lambda_context.get_remaining_time_in_millis()/1000)
                 if (eta + 30) > remaining:
-                    print("Invoke fargate")
-                    return
+                    print("ETA is longer than remaining time for this function. Transfer to Fargate")
+                    return False
     else:
         print('Total file length not available in headers')
     full_content = response.content
@@ -89,6 +111,7 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, invoke_f
         s3 = boto3.resource('s3')
         bucket = s3.Bucket(os.environ['S3_DATA_BUCKET'])
         bucket.put_object(Key=f'raw/{asset_filename}', Body=full_content)
+    return True
 
 
 def parse_catalog(filename: str):
@@ -100,10 +123,12 @@ def lambda_handler(event, context):
     asset_name = event['asset_name']
     asset_filename = event['asset_filename']
     asset_url = event['asset_url']
+    upload_only_once = bool(event['has_cron_expression'])
     task_definition = os.environ['TASK_DEFINITION']
     cluster_name = os.environ['CLUSTER_NAME']
-    fetch_dataset(asset_name, asset_filename, asset_url, invoke_fargate=True, task_definition=task_definition,
-                  cluster_name=cluster_name, lambda_context=context)
+    function_finished = fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once, context, True)
+    if not function_finished:
+        invoke_fargate(task_definition, cluster_name, asset_name, asset_filename, asset_url, upload_only_once)
 
 
 if __name__ == '__main__':
@@ -111,7 +136,8 @@ if __name__ == '__main__':
     asset_filename = os.environ['ASSET_FILENAME']
     asset_url = os.environ['ASSET_URL']
     if os.environ['EXEC_MODE'] == 'FARGATE':
-        fetch_dataset(asset_name, asset_filename, asset_url)
+        upload_only_once = bool(os.environ['UPLOAD_ONLY_ONCE'])
+        fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once)
     elif os.environ['EXEC_MODE'] == 'LOCAL':
         f_catalog = parse_catalog('catalog.yml')
         for key, item in f_catalog.items():
