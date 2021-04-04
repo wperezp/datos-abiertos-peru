@@ -3,7 +3,8 @@ import * as s3 from '@aws-cdk/aws-s3';
 import * as dynamodb from '@aws-cdk/aws-dynamodb'
 import * as lambda from '@aws-cdk/aws-lambda'
 import * as ecs from '@aws-cdk/aws-ecs'
-import { Duration } from '@aws-cdk/core';
+import * as iam from '@aws-cdk/aws-iam'
+import { Duration, FeatureFlags } from '@aws-cdk/core';
 import { DAPScheduledFetchEvents } from './daily-fetch-events'
 import { DAPFetchContainer } from './single-fetch-container';
 
@@ -51,6 +52,12 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
 
     hashesTable.grantReadWriteData(fetchFn)
     dataBucket.grantWrite(fetchFn)
+
+    const grantEcsRunTask = new iam.PolicyStatement();
+    grantEcsRunTask.addActions('ecs:RunTask')
+    grantEcsRunTask.addResources(fetchFargate.taskDefinition.taskDefinitionArn)
+
+    fetchFn.addToRolePolicy(grantEcsRunTask)
 
     const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`
     const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerRequests', requestsLayerArn)
