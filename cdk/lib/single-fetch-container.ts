@@ -5,9 +5,10 @@ import { Repository } from '@aws-cdk/aws-ecr'
 import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
 
 
-export class DAPSingleFetchContainer extends Construct {
+export class DAPFetchContainer extends Construct {
 
   readonly taskDefinition: FargateTaskDefinition;
+  readonly cluster: Cluster;
 
   constructor(scope: Construct, id: string, containerEnv = {}) {
     super(scope, id);
@@ -17,7 +18,7 @@ export class DAPSingleFetchContainer extends Construct {
     });
 
     this.taskDefinition.addContainer('Container', {
-      image: ContainerImage.fromAsset('../src/fetch/standalone'),
+      image: ContainerImage.fromAsset('../src/fetch/'),
       logging: LogDriver.awsLogs({
         streamPrefix: 'Container'
       }),
@@ -26,11 +27,11 @@ export class DAPSingleFetchContainer extends Construct {
       memoryLimitMiB: 4096
     });
 
-    let sfCluster = new Cluster(this, 'Cluster', { containerInsights: true })
-    const runTaskOnce = new RunTask(this, 'runOnce', {
-      task: this.taskDefinition,
-      cluster: sfCluster,
-      runOnResourceUpdate: true
-    })
+    this.cluster = new Cluster(this, 'Cluster', { containerInsights: true })
+    // const runTaskOnce = new RunTask(this, 'runOnce', {
+    //   task: this.taskDefinition,
+    //   cluster: sfCluster,
+    //   runOnResourceUpdate: true
+    // })
   }
 }

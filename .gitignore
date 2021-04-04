@@ -17,5 +17,5 @@ cdk.out
 .idea/*
 
 # app
-src/fetch/standalone/*.yml
+src/fetch/*.yml
 src/invoke/*.yml

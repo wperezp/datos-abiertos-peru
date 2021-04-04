@@ -19,7 +19,7 @@ function readSourcesCatalog(): object {
   return typeof sourcesCatalogYaml == 'object' ? sourcesCatalogYaml : Object()
 }
 
-export class DAPDailyFetchEvents extends Construct {
+export class DAPScheduledFetchEvents extends Construct {
 
   constructor(scope: Construct, id: string, targetFn: Function) {
     super(scope, id);

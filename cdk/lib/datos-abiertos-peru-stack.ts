@@ -3,8 +3,8 @@ import * as s3 from '@aws-cdk/aws-s3';
 import * as dynamodb from '@aws-cdk/aws-dynamodb'
 import * as lambda from '@aws-cdk/aws-lambda'
 import { Duration } from '@aws-cdk/core';
-import { DAPDailyFetchEvents } from './daily-fetch-events'
-import { DAPSingleFetchContainer } from './single-fetch-container';
+import { DAPScheduledFetchEvents } from './daily-fetch-events'
+import { DAPFetchContainer } from './single-fetch-container';
 
 export class DatosAbiertosPeruStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -23,12 +23,12 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       writeCapacity: 1,
     })
 
-    const fetchFn = new lambda.Function(this, 'fnDailyFetch', {
-      handler: 'daily_fetch.get_dataset',
+    const fetchFn = new lambda.Function(this, 'fnScheduledFetch', {
+      handler: 'fetch.lambda_handler',
       runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset('../src/fetch/daily'),
-      memorySize: 1024,
-      timeout: Duration.minutes(10),
+      code: lambda.Code.fromAsset('../src/fetch/'),
+      memorySize: 1500,
+      timeout: Duration.minutes(15),
       environment: {
         "DDB_HASHES_TABLE": hashesTable.tableName,
         "S3_DATA_BUCKET": dataBucket.bucketName
@@ -38,9 +38,12 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     hashesTable.grantReadWriteData(fetchFn)
     dataBucket.grantWrite(fetchFn)
 
-    const reqLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`
-    const fetchRequestLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerRequests', reqLayerArn)
-    fetchFn.addLayers(fetchRequestLayer)
+    const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`
+    const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerRequests', requestsLayerArn)
+    const yamlLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-PyYAML:4`
+    const yamlLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerYAML', yamlLayerArn)
+    
+    fetchFn.addLayers(requestsLayer, yamlLayer)
 
     const invokeFetchFn = new lambda.Function(this, 'fnInvokeFetch', {
       handler: 'invoke.handler',
@@ -52,21 +55,24 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       memorySize: 200,
       timeout: Duration.minutes(1)
     })
-
-    const yamlLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-PyYAML:4`
-    const invokeYamlLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerYAML', yamlLayerArn)
-    invokeFetchFn.addLayers(invokeYamlLayer)
+    
+    invokeFetchFn.addLayers(yamlLayer)
 
     fetchFn.grantInvoke(invokeFetchFn)
 
-    new DAPDailyFetchEvents(this, 'dailyFetch_Events', fetchFn)
+    new DAPScheduledFetchEvents(this, 'scheduledFetch_Events', fetchFn)
 
-    const singleFetchFargate = new DAPSingleFetchContainer(this, 'singleFetch', {
+    const fetchFargate = new DAPFetchContainer(this, 'singleFetch', {
       S3_DATA_BUCKET: dataBucket.bucketName,
-      DDB_HASHES_TABLE: hashesTable.tableName
+      DDB_HASHES_TABLE: hashesTable.tableName,
+      EXEC_MODE: "FARGATE"
     })
 
-    hashesTable.grantReadWriteData(singleFetchFargate.taskDefinition.taskRole)
-    dataBucket.grantWrite(singleFetchFargate.taskDefinition.taskRole)
+    hashesTable.grantReadWriteData(fetchFargate.taskDefinition.taskRole)
+    dataBucket.grantWrite(fetchFargate.taskDefinition.taskRole)
+
+    fetchFn.addEnvironment("TASK_DEFINITION", fetchFargate.taskDefinition.taskDefinitionArn)
+    fetchFn.addEnvironment("CLUSTER_NAME", fetchFargate.cluster.clusterName)
+
   }
 }
