@@ -47,19 +47,18 @@ def asset_exists(asset_name: str) -> bool:
 
 
 def invoke_fargate(task_definition: str, cluster_name: str, asset_name: str, asset_filename: str,
-                   asset_url: str, upload_only_once: bool):
+                   asset_url: str):
     ecs_client = boto3.client('ecs')
     response = ecs_client.run_task(
         cluster=cluster_name,
-        task_definition=task_definition,
+        taskDefinition=task_definition,
         overrides={
             'containerOverrides': [
                 {
                     'environment': [
                         {'ASSET_NAME': asset_name},
                         {'ASSET_FILENAME': asset_filename},
-                        {'ASSET_URL': asset_url},
-                        {'UPLOAD_ONLY_ONCE': int(upload_only_once)}
+                        {'ASSET_URL': asset_url}
                     ]
                 }
             ]
@@ -123,20 +122,20 @@ def lambda_handler(event, context):
     asset_name = event['asset_name']
     asset_filename = event['asset_filename']
     asset_url = event['asset_url']
-    upload_only_once = bool(event['has_cron_expression'])
+    upload_only_once = event.get('cron_expression') is None
     task_definition = os.environ['TASK_DEFINITION']
     cluster_name = os.environ['CLUSTER_NAME']
     function_finished = fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once, context, True)
     if not function_finished:
-        invoke_fargate(task_definition, cluster_name, asset_name, asset_filename, asset_url, upload_only_once)
+        invoke_fargate(task_definition, cluster_name, asset_name, asset_filename, asset_url)
 
 
 if __name__ == '__main__':
-    asset_name = os.environ['ASSET_NAME']
-    asset_filename = os.environ['ASSET_FILENAME']
-    asset_url = os.environ['ASSET_URL']
     if os.environ['EXEC_MODE'] == 'FARGATE':
-        upload_only_once = bool(os.environ['UPLOAD_ONLY_ONCE'])
+        asset_name = os.environ['ASSET_NAME']
+        asset_filename = os.environ['ASSET_FILENAME']
+        asset_url = os.environ['ASSET_URL']
+        upload_only_once = os.environ.get('CRON_EXPRESSION') is None
         fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once)
     elif os.environ['EXEC_MODE'] == 'LOCAL':
         f_catalog = parse_catalog('catalog.yml')
@@ -144,10 +143,7 @@ if __name__ == '__main__':
             asset_name = item['Name']
             asset_filename = item['Filename']
             asset_url = item['URI']
-            try:
-                asset_has_cron = item['CronExpression']
-                fetch_dataset(asset_name, asset_filename, asset_url)
-            except KeyError:
-                fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once=True)
+            upload_only_once = item.get('CronExpression') is None
+            fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once)
 
 
