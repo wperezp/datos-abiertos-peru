@@ -15,7 +15,8 @@ def invoke_fargate(task_definition: str, container_name: str, cluster_name: str,
                     'environment': [
                         {'name': 'ASSET_NAME', 'value': asset_name},
                         {'name': 'ASSET_FILENAME', 'value': asset_filename},
-                        {'name': 'ASSET_URL', 'value': asset_url}
+                        {'name': 'ASSET_URL', 'value': asset_url},
+                        {'name': 'EXEC_MODE', 'value': 'FARGATE'}
                     ]
                 }
             ]
