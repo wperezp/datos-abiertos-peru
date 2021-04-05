@@ -53,7 +53,7 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_o
     if upload_only_once:
         print(f"Checking if it's already uploaded")
         if asset_exists(asset_name):
-            print(f"{key} Already uploaded")
+            print(f"Already uploaded")
             return
     print(f"Downloading from {asset_url}")
     response = requests.get(asset_url, stream=True)
