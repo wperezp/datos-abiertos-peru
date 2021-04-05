@@ -45,7 +45,8 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       environment: {
         "DDB_HASHES_TABLE": hashesTable.tableName,
         "S3_DATA_BUCKET": dataBucket.bucketName
-      }
+      },
+      retryAttempts: 1
     })
 
     hashesTable.grantReadWriteData(fetchFn)

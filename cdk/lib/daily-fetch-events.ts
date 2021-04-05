@@ -30,6 +30,7 @@ export class DAPScheduledFetchEvents extends Construct {
       let itemDescription = item as SourceDescription;
       if (itemDescription.hasOwnProperty('CronExpression')) {
         let customPayload = {
+          asset_name: itemDescription.Name,
           asset_url: itemDescription.URI,
           asset_filename: itemDescription.Filename
         };
