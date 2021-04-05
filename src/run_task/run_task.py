@@ -25,7 +25,8 @@ def invoke_fargate(task_definition: str, container_name: str, cluster_name: str,
         launchType='FARGATE',
         networkConfiguration={
             'awsvpcConfiguration': {
-                'subnets': [subnet_id]
+                'subnets': [subnet_id],
+                'assignPublicIp': 'ENABLED'
             }
         }
     )
