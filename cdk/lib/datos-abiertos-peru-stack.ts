@@ -86,7 +86,7 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
         "CLUSTER_NAME": ecsCluster.clusterName,
         "SUBNET_ID": publicSubnet
       },
-      memorySize: 100,
+      memorySize: 128,
       timeout: Duration.seconds(10)
     })
 
