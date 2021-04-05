@@ -85,7 +85,7 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_o
                     return False
     else:
         print('Total file length not available in headers')
-    full_content = response.content
+        full_content = response.content
     if is_newer_version(asset_name, full_content):
         s3 = boto3.resource('s3')
         bucket = s3.Bucket(os.environ['S3_DATA_BUCKET'])
