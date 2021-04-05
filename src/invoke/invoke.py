@@ -28,12 +28,12 @@ def invoke_for_all_assets(catalog: dict, function_name: str):
 
 
 def lambda_handler(event, context):
-    catalog_to_invoke = parse_catalog('daily.yml')
+    catalog_to_invoke = parse_catalog('catalog.yml')
     function_name = os.environ['FETCH_FUNCTION_NAME']
     invoke_for_all_assets(catalog_to_invoke, function_name)
 
 
 if __name__ == '__main__':
-    catalog_to_invoke = parse_catalog('daily.yml')
+    catalog_to_invoke = parse_catalog('catalog.yml')
     function_name = sys.argv[1]
     invoke_for_all_assets(catalog_to_invoke, function_name)
