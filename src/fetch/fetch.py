@@ -50,11 +50,11 @@ def asset_exists(asset_name: str) -> bool:
 def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_only_once=False, lambda_context=None,
                   invoke_fargate=False):
     print(f"Asset name: {asset_name}")
-    # if upload_only_once:
-    #     print(f"Checking if it's already uploaded")
-    #     if asset_exists(asset_name):
-    #         print(f"{key} Already uploaded")
-    #         return
+    if upload_only_once:
+        print(f"Checking if it's already uploaded")
+        if asset_exists(asset_name):
+            print(f"{key} Already uploaded")
+            return
     print(f"Downloading from {asset_url}")
     response = requests.get(asset_url, stream=True)
     full_content = bytes(0)

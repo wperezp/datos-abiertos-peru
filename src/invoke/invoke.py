@@ -22,6 +22,8 @@ def invoke_for_all_assets(catalog: dict, function_name: str):
             'asset_filename': asset_filename,
             'asset_url': asset_url
         }
+        if item.get('CronExpression') is not None:
+            payload['cron_expression'] = item['CronExpression']
         lambda_client.invoke(
             FunctionName=function_name,
             InvocationType='Event',

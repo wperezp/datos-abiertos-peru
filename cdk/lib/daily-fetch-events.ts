@@ -4,7 +4,6 @@ import { LambdaFunction } from '@aws-cdk/aws-events-targets';
 import { Rule, RuleTargetInput, Schedule } from "@aws-cdk/aws-events";
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
-import { print } from "util";
 
 
 interface SourceDescription {
@@ -32,7 +31,8 @@ export class DAPScheduledFetchEvents extends Construct {
         let customPayload = {
           asset_name: itemDescription.Name,
           asset_url: itemDescription.URI,
-          asset_filename: itemDescription.Filename
+          asset_filename: itemDescription.Filename,
+          cron_expression: itemDescription.CronExpression
         };
         let eventTarget = new LambdaFunction(targetFn, {
           event: RuleTargetInput.fromObject(customPayload)
