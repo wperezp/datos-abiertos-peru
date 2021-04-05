@@ -4,6 +4,7 @@ import * as dynamodb from '@aws-cdk/aws-dynamodb'
 import * as lambda from '@aws-cdk/aws-lambda'
 import * as ecs from '@aws-cdk/aws-ecs'
 import * as iam from '@aws-cdk/aws-iam'
+import * as ec2 from '@aws-cdk/aws-ec2'
 import { Duration, FeatureFlags } from '@aws-cdk/core';
 import { DAPScheduledFetchEvents } from './daily-fetch-events'
 import { DAPFetchContainer } from './single-fetch-container';
@@ -25,7 +26,20 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       writeCapacity: 1,
     })
 
-    const ecsCluster = new ecs.Cluster(this, 'ecsCluster', {containerInsights: true})
+    const vpc = new ec2.Vpc(this, 'VPC', {
+      maxAzs: 2,
+      subnetConfiguration: [
+        {
+          name: 'default',
+          subnetType: ec2.SubnetType.PUBLIC
+        }
+      ]
+    })
+
+    const ecsCluster = new ecs.Cluster(this, 'ecsCluster', {
+      containerInsights: true,
+      vpc: vpc
+    })
 
     const fetchFargate = new DAPFetchContainer(this, 'singleFetch', {
       S3_DATA_BUCKET: dataBucket.bucketName,
