@@ -86,20 +86,25 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
         "CLUSTER_NAME": ecsCluster.clusterName,
         "SUBNET_ID": publicSubnet
       },
-      memorySize: 200,
-      timeout: Duration.minutes(2)
+      memorySize: 100,
+      timeout: Duration.seconds(10)
     })
 
     const grantEcsRunTask = new iam.PolicyStatement();
     grantEcsRunTask.addActions('ecs:RunTask')
     grantEcsRunTask.addResources(fetchFargate.taskDefinition.taskDefinitionArn)
 
-    const grantPassRole = new iam.PolicyStatement();
-    grantPassRole.addActions('iam:PassRole')
-    grantPassRole.addResources(fetchFargate.taskDefinition.executionRole!.roleArn)
+    const taskGrantPassRole = new iam.PolicyStatement();
+    taskGrantPassRole.addActions('iam:PassRole')
+    taskGrantPassRole.addResources(fetchFargate.taskDefinition.taskRole.roleArn)
+
+    const execGrantPassRole = new iam.PolicyStatement();
+    execGrantPassRole.addActions('iam:PassRole')
+    execGrantPassRole.addResources(fetchFargate.taskDefinition.executionRole!.roleArn)
 
     runTaskFn.addToRolePolicy(grantEcsRunTask)
-    runTaskFn.addToRolePolicy(grantPassRole)
+    runTaskFn.addToRolePolicy(taskGrantPassRole)
+    runTaskFn.addToRolePolicy(execGrantPassRole)
 
     runTaskFn.grantInvoke(fetchFn)
     fetchFn.addEnvironment("RUN_TASK_FUNCTION", runTaskFn.functionName)
