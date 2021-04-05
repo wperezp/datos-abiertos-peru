@@ -4,6 +4,7 @@ import yaml
 import hashlib
 import os
 import time
+import json
 
 
 def is_newer_version(asset_name: str, obj_bytes: bytes) -> bool:
@@ -44,28 +45,6 @@ def asset_exists(asset_name: str) -> bool:
         return response_item is not None
     except KeyError as e:
         return False
-
-
-def invoke_fargate(task_definition: str, container_name: str, cluster_name: str, asset_name: str, asset_filename: str,
-                   asset_url: str):
-    ecs_client = boto3.client('ecs')
-    response = ecs_client.run_task(
-        cluster=cluster_name,
-        taskDefinition=task_definition,
-        overrides={
-            'containerOverrides': [
-                {
-                    'name': container_name,
-                    'environment': [
-                        {'name': 'ASSET_NAME', 'value': asset_name},
-                        {'name': 'ASSET_FILENAME', 'value': asset_filename},
-                        {'name': 'ASSET_URL', 'value': asset_url}
-                    ]
-                }
-            ]
-        }
-    )
-    print(response)
 
 
 def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_only_once=False, lambda_context=None,
@@ -124,12 +103,20 @@ def lambda_handler(event, context):
     asset_filename = event['asset_filename']
     asset_url = event['asset_url']
     upload_only_once = event.get('cron_expression') is None
-    task_definition = os.environ['TASK_DEFINITION']
-    cluster_name = os.environ['CLUSTER_NAME']
-    container_name = os.environ['CONTAINER_NAME']
+    run_fargate_function = os.environ['RUN_TASK_FUNCTION']
     function_finished = fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once, context, True)
     if not function_finished:
-        invoke_fargate(task_definition, container_name, cluster_name, asset_name, asset_filename, asset_url)
+        lambda_client = boto3.client('lambda')
+        payload = {
+            "asset_name": asset_name,
+            "asset_filename": asset_filename,
+            "asset_url": asset_url
+        }
+        lambda_client.invoke(
+            FunctionName=run_fargate_function,
+            InvocationType='Event',
+            Payload=json.dumps(payload).encode('utf-8')
+        )
 
 
 if __name__ == '__main__':

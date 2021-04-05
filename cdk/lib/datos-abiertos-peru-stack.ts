@@ -44,26 +44,12 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
       timeout: Duration.minutes(15),
       environment: {
         "DDB_HASHES_TABLE": hashesTable.tableName,
-        "S3_DATA_BUCKET": dataBucket.bucketName,
-        "TASK_DEFINITION": fetchFargate.taskDefinition.taskDefinitionArn,
-        "CLUSTER_NAME": ecsCluster.clusterName,
-        "CONTAINER_NAME": fetchFargate.container.containerName
+        "S3_DATA_BUCKET": dataBucket.bucketName
       }
     })
 
     hashesTable.grantReadWriteData(fetchFn)
     dataBucket.grantWrite(fetchFn)
-
-    const grantEcsRunTask = new iam.PolicyStatement();
-    grantEcsRunTask.addActions('ecs:RunTask')
-    grantEcsRunTask.addResources(fetchFargate.taskDefinition.taskDefinitionArn)
-
-    const grantPassRole = new iam.PolicyStatement();
-    grantPassRole.addActions('iam:PassRole')
-    grantPassRole.addResources(fetchFargate.taskDefinition.executionRole!.roleArn)
-
-    fetchFn.addToRolePolicy(grantEcsRunTask)
-    fetchFn.addToRolePolicy(grantPassRole)
 
     const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`
     const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerRequests', requestsLayerArn)
@@ -71,9 +57,10 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
     const yamlLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'fnLayerYAML', yamlLayerArn)
     
     fetchFn.addLayers(requestsLayer, yamlLayer)
+    new DAPScheduledFetchEvents(this, 'scheduledFetch_Events', fetchFn)
 
     const invokeFetchFn = new lambda.Function(this, 'fnInvokeFetch', {
-      handler: 'invoke.handler',
+      handler: 'invoke.lambda_handler',
       runtime: lambda.Runtime.PYTHON_3_8,
       code: lambda.Code.fromAsset('../src/invoke'),
       environment: {
@@ -87,7 +74,35 @@ export class DatosAbiertosPeruStack extends cdk.Stack {
 
     fetchFn.grantInvoke(invokeFetchFn)
 
-    new DAPScheduledFetchEvents(this, 'scheduledFetch_Events', fetchFn)
+    const publicSubnet = ecsCluster.vpc.publicSubnets[0].subnetId
+
+    const runTaskFn = new lambda.Function(this, 'fnRunTask', {
+      handler: 'run_task.lambda_handler',
+      runtime: lambda.Runtime.PYTHON_3_8,
+      code: lambda.Code.fromAsset('../src/run_task'),
+      environment: {
+        "TASK_DEFINITION": fetchFargate.taskDefinition.taskDefinitionArn,
+        "CONTAINER_NAME": fetchFargate.container.containerName,
+        "CLUSTER_NAME": ecsCluster.clusterName,
+        "SUBNET_ID": publicSubnet
+      },
+      memorySize: 200,
+      timeout: Duration.minutes(2)
+    })
+
+    const grantEcsRunTask = new iam.PolicyStatement();
+    grantEcsRunTask.addActions('ecs:RunTask')
+    grantEcsRunTask.addResources(fetchFargate.taskDefinition.taskDefinitionArn)
+
+    const grantPassRole = new iam.PolicyStatement();
+    grantPassRole.addActions('iam:PassRole')
+    grantPassRole.addResources(fetchFargate.taskDefinition.executionRole!.roleArn)
+
+    runTaskFn.addToRolePolicy(grantEcsRunTask)
+    runTaskFn.addToRolePolicy(grantPassRole)
+
+    runTaskFn.grantInvoke(fetchFn)
+    fetchFn.addEnvironment("RUN_TASK_FUNCTION", runTaskFn.functionName)
 
   }
 }

@@ -13,7 +13,7 @@ export class DAPFetchContainer extends Construct {
       cpu: 512,
       memoryLimitMiB: 4096
     });
-
+    
     this.container = this.taskDefinition.addContainer('Container', {
       image: ContainerImage.fromAsset('../src/fetch/'),
       logging: LogDriver.awsLogs({
