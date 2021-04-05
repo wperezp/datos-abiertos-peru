@@ -33,14 +33,11 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: false
       - run:
-          name: Compile catalog
+          name: Compile catalogs
           command: |
-            cp catalogs/daily.yml invoke/daily.yml
+            cat catalogs/*.yml > fetch/catalog.yml
+            cat catalogs/*.yml > invoke/catalog.yml
           working_directory: src
-      - run:
-          name: Attach dummy catalog
-          command: echo -n > catalog.yml
-          working_directory: src/fetch/
       - run: 
           name: CDK deploy
           command: npm run deploy
