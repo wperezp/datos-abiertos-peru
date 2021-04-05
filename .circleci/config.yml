@@ -33,10 +33,10 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: false
       - run:
-          name: Attach catalogs
+          name: Compile catalogs
           command: |
-            cp catalogs/daily.yml invoke/daily.yml
-            cp catalogs/single_upload.yml fetch/standalone/catalog.yml
+            cat catalogs/*.yml > fetch/catalog.yml
+            cat catalogs/*.yml > invoke/catalog.yml
           working_directory: src
       - run: 
           name: CDK deploy
