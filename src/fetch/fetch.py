@@ -120,6 +120,7 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
+    print(os.environ)
     if os.environ['EXEC_MODE'] == 'FARGATE':
         asset_name = os.environ['ASSET_NAME']
         asset_filename = os.environ['ASSET_FILENAME']
