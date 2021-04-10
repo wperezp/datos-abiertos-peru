@@ -42,13 +42,13 @@ export class DAPFetchStack extends Stack {
     hashesTable.grantReadWriteData(this.fetchFn);
     sourceDataBucket.grantWrite(this.fetchFn);
 
-    const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-requests-html:37`;
+    const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-requests-html:37`;
     const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(
       this,
       "fnLayerRequests",
       requestsLayerArn
     );
-    const yamlLayerArn = `arn:aws:lambda:${process.env.AWS_REGION}:770693421928:layer:Klayers-python38-PyYAML:4`;
+    const yamlLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-PyYAML:4`;
     const yamlLayer = lambda.LayerVersion.fromLayerVersionArn(
       this,
       "fnLayerYAML",
