@@ -25,7 +25,7 @@ jobs:
         default: us-east-1
         type: string
     environment:
-      AWS_REGION: <<parameters.region>>
+      AWS_DEFAULT_REGION: <<parameters.region>>
       CDK_NEW_BOOTSTRAP: 1
     steps:
       - attach_workspace:
