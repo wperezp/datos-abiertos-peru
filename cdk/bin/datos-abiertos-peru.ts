@@ -5,7 +5,7 @@ import { DAPBaseStack } from '../lib/base-stack';
 import { DAPFetchStack } from '../lib/fetch-stack';
 import { DAPScheduledFetchEventsStack } from '../lib/fetch-events-stack';
 
-const AWS_REGION = process.env.AWS_REGION;
+const AWS_REGION = process.env.AWS_DEFAULT_REGION;
 const PROJECT_TAG = 'datos-abiertos-peru';
 
 const app = new cdk.App();
