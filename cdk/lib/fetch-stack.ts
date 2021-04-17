@@ -82,6 +82,9 @@ export class DAPFetchStack extends Stack {
       memoryLimitMiB: 4096
     });
 
+    hashesTable.grantReadWriteData(this.taskDefinition.taskRole);
+    sourceDataBucket.grantWrite(this.taskDefinition.taskRole);
+
     this.containerDefinition = this.taskDefinition.addContainer('Container', {
       image: ContainerImage.fromAsset('../src/fetch/'),
       logging: LogDriver.awsLogs({
