@@ -19,10 +19,10 @@ export class DAPStagingStack extends Stack {
       }
     });
 
-    // this.fnCleaning.addEventSource(new S3EventSource(sourceDataBucket, {
-    //   events: [s3.EventType.OBJECT_CREATED],
-    //   filters: [{prefix: 'raw/'}]
-    // }));
+    this.fnCleaning.addEventSource(new S3EventSource(sourceDataBucket, {
+      events: [s3.EventType.OBJECT_CREATED],
+      filters: [{prefix: 'raw/'}]
+    }));
 
   }
 }
