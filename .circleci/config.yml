@@ -11,9 +11,8 @@ jobs:
           app-dir: cdk/
       - run: 
           name: Typescript compile
-          command: |
-            cd cdk/
-            npm run build
+          command: npm run build
+          working_directory: cdk/
       - persist_to_workspace:
           root: .
           paths:
