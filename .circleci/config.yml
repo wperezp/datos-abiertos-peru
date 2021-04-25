@@ -9,6 +9,7 @@ jobs:
       - checkout
       - node/install-packages:
           app-dir: cdk/
+          cache-version: v2
       - run: 
           name: Typescript compile
           command: npm run build
