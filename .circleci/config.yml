@@ -9,8 +9,6 @@ jobs:
       - checkout
       - node/install-packages:
           app-dir: cdk/
-          cache-path: ~/project/cdk/node_modules
-          override-ci-command: npm install
       - run: 
           name: Typescript compile
           command: npm run build
