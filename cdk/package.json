@@ -1,6 +1,6 @@
 {
   "name": "datos-abiertos-peru",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "bin": {
     "datos-abiertos-peru": "bin/datos-abiertos-peru.js"
   },
