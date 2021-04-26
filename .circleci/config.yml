@@ -7,6 +7,7 @@ jobs:
     executor: node/default
     steps:
       - checkout
+      - node/install-npm
       - node/install-packages:
           app-dir: cdk/
           cache-version: v2
