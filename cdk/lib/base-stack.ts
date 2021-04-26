@@ -5,6 +5,7 @@ import * as lambda from "@aws-cdk/aws-lambda";
 import { Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
 import { LambdaDestination } from "@aws-cdk/aws-s3-notifications";
 import { DAPFetchContainer } from "./fetch-container";
+import { DAPWorkflow } from "./sfn-workflow";
 
 export class DAPBaseStack extends Stack {
   
@@ -108,6 +109,8 @@ export class DAPBaseStack extends Stack {
     this.sourceDataBucket.grantReadWrite(this.fnStaging);
     this.sourceDataBucket.addObjectCreatedNotification(new LambdaDestination(this.fnStaging), {prefix: 'raw/'});
 
+    // Workflow
+    new DAPWorkflow(this, 'SfnWorkflow', this.fnFetch, this.fnStaging);
     
   }
 }
