@@ -16,8 +16,7 @@ export class DAPWorkflow extends Construct {
     super(scope, id);
 
     const fetchAsset = new tasks.LambdaInvoke(this, 'FetchAsset', {
-      lambdaFunction: fnFetch,
-      outputPath: '$.Payload'
+      lambdaFunction: fnFetch
     });
 
     const runTask = new tasks.EcsRunTask(this, 'RunFargate', {
@@ -30,10 +29,10 @@ export class DAPWorkflow extends Construct {
         {
           containerDefinition: fetchContainer.containerDefinition,
           environment: [
-            {name: 'ASSET_NAME', value: sfn.JsonPath.stringAt('$.Payload.asset_name')},
-            {name: 'ASSET_FILENAME', value: sfn.JsonPath.stringAt('$.Payload.asset_name')},
-            {name: 'ASSET_URL', value: sfn.JsonPath.stringAt('$.Payload.asset_name')},
-            {name: 'UPLOAD_ONLY_ONCE', value: sfn.JsonPath.stringAt('$.Payload.upload_only_once')},
+            {name: 'ASSET_NAME', value: sfn.JsonPath.stringAt('$.asset_name')},
+            {name: 'ASSET_FILENAME', value: sfn.JsonPath.stringAt('$.asset_name')},
+            {name: 'ASSET_URL', value: sfn.JsonPath.stringAt('$.asset_name')},
+            {name: 'UPLOAD_ONLY_ONCE', value: sfn.JsonPath.stringAt('$.upload_only_once')},
             {name: 'EXEC_MODE', value: 'FARGATE'}
           ]
         }
@@ -41,14 +40,13 @@ export class DAPWorkflow extends Construct {
     })
 
     const stagingJob = new tasks.LambdaInvoke(this, 'Staging', {
-      lambdaFunction: fnStaging,
-      inputPath: '$.Payload',
-      outputPath: '$.Payload'
+      lambdaFunction: fnStaging
     })
 
     const definition = fetchAsset
       .next(new sfn.Choice(this, 'FetchFinished?')
         .when(sfn.Condition.booleanEquals('$.Payload.fetch_finished', false), runTask)
+        .otherwise(new sfn.Pass(this, 'Pass'))
         .afterwards()
       )
       .next(stagingJob);
