@@ -45,7 +45,7 @@ export class DAPWorkflow extends Construct {
 
     const definition = fetchAsset
       .next(new sfn.Choice(this, 'FetchFinished?')
-        .when(sfn.Condition.booleanEquals('$.Payload.fetch_finished', false), runTask)
+        .when(sfn.Condition.booleanEquals('$.fetch_finished', false), runTask)
         .otherwise(new sfn.Pass(this, 'Pass'))
         .afterwards()
       )
