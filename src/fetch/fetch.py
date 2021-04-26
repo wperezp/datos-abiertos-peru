@@ -4,7 +4,6 @@ import yaml
 import hashlib
 import os
 import time
-import json
 
 
 def is_newer_version(asset_name: str, obj_bytes: bytes) -> bool:
@@ -103,20 +102,15 @@ def lambda_handler(event, context):
     asset_filename = event['asset_filename']
     asset_url = event['asset_url']
     upload_only_once = event.get('cron_expression') is None
-    run_fargate_function = os.environ['RUN_TASK_FUNCTION']
     function_finished = fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once, context, True)
-    if not function_finished:
-        lambda_client = boto3.client('lambda')
-        payload = {
-            "asset_name": asset_name,
-            "asset_filename": asset_filename,
-            "asset_url": asset_url
-        }
-        lambda_client.invoke(
-            FunctionName=run_fargate_function,
-            InvocationType='Event',
-            Payload=json.dumps(payload).encode('utf-8')
-        )
+    fn_output = {
+        "asset_name": asset_name,
+        "asset_filename": asset_filename,
+        "asset_url": asset_url,
+        "upload_only_once": upload_only_once,
+        "fetch_finished": function_finished
+    }
+    return fn_output
 
 
 if __name__ == '__main__':

@@ -7,17 +7,38 @@ import SourceDescription from '../utils/source-descriptor';
 import { Construct } from '@aws-cdk/core';
 import * as targets from '@aws-cdk/aws-events-targets';
 import { Rule, RuleTargetInput, Schedule } from '@aws-cdk/aws-events';
+import { DAPFetchContainer } from './fetch-container';
 
 export class DAPWorkflow extends Construct {
   readonly workflowStateMachine: sfn.StateMachine;
 
-  constructor(scope: Construct, id: string, fnFetch: lambda.Function, fnStaging: lambda.Function) {
+  constructor(scope: Construct, id: string, fnFetch: lambda.Function, fetchContainer: DAPFetchContainer, fnStaging: lambda.Function) {
     super(scope, id);
 
     const fetchAsset = new tasks.LambdaInvoke(this, 'FetchAsset', {
       lambdaFunction: fnFetch,
       outputPath: '$.Payload'
     });
+
+    const runTask = new tasks.EcsRunTask(this, 'RunFargate', {
+      cluster: fetchContainer.cluster,
+      taskDefinition: fetchContainer.taskDefinition,
+      integrationPattern: sfn.IntegrationPattern.RUN_JOB,
+      launchTarget: new tasks.EcsFargateLaunchTarget(),
+      assignPublicIp: true,
+      containerOverrides: [
+        {
+          containerDefinition: fetchContainer.containerDefinition,
+          environment: [
+            {name: 'ASSET_NAME', value: sfn.JsonPath.stringAt('$.Payload.asset_name')},
+            {name: 'ASSET_FILENAME', value: sfn.JsonPath.stringAt('$.Payload.asset_name')},
+            {name: 'ASSET_URL', value: sfn.JsonPath.stringAt('$.Payload.asset_name')},
+            {name: 'UPLOAD_ONLY_ONCE', value: sfn.JsonPath.stringAt('$.Payload.upload_only_once')},
+            {name: 'EXEC_MODE', value: 'FARGATE'}
+          ]
+        }
+      ]
+    })
 
     const stagingJob = new tasks.LambdaInvoke(this, 'Staging', {
       lambdaFunction: fnStaging,
@@ -26,9 +47,13 @@ export class DAPWorkflow extends Construct {
     })
 
     const definition = fetchAsset
+      .next(new sfn.Choice(this, 'FetchFinished?')
+        .when(sfn.Condition.booleanEquals('$.Payload.fetch_finished', false), runTask)
+        .afterwards()
+      )
       .next(stagingJob);
     
-    this.workflowStateMachine = new sfn.StateMachine(this, 'WorkflowStateMachine', {
+    this.workflowStateMachine = new sfn.StateMachine(this, 'StateMachine', {
       definition: definition
     })
 

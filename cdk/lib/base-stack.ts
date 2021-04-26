@@ -95,7 +95,7 @@ export class DAPBaseStack extends Stack {
     this.fnFetch.grantInvoke(this.fnInvokeFetch);
 
     // Container to execute when download time is longer than fnFetch timeout
-    new DAPFetchContainer(this, 'fetchContainer', this.vpc, this.fnFetch, this.sourceDataBucket, this.hashesTable);
+    const fetchContainer = new DAPFetchContainer(this, 'fetchContainer', this.vpc, this.fnFetch, this.sourceDataBucket, this.hashesTable);
 
     // Staging function
     this.fnStaging = new lambda.DockerImageFunction(this, "fnCleaning",{
@@ -110,7 +110,7 @@ export class DAPBaseStack extends Stack {
     this.sourceDataBucket.addObjectCreatedNotification(new LambdaDestination(this.fnStaging), {prefix: 'raw/'});
 
     // Workflow
-    new DAPWorkflow(this, 'SfnWorkflow', this.fnFetch, this.fnStaging);
+    new DAPWorkflow(this, 'SfnWorkflow', this.fnFetch, fetchContainer, this.fnStaging);
     
   }
 }
