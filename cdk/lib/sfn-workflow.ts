@@ -8,6 +8,7 @@ import { Construct } from '@aws-cdk/core';
 import * as targets from '@aws-cdk/aws-events-targets';
 import { Rule, RuleTargetInput, Schedule } from '@aws-cdk/aws-events';
 import { DAPFetchContainer } from './fetch-container';
+import { TaskInput } from '@aws-cdk/aws-stepfunctions';
 
 export class DAPWorkflow extends Construct {
   readonly workflowStateMachine: sfn.StateMachine;
@@ -16,7 +17,8 @@ export class DAPWorkflow extends Construct {
     super(scope, id);
 
     const fetchAsset = new tasks.LambdaInvoke(this, 'FetchAsset', {
-      lambdaFunction: fnFetch
+      lambdaFunction: fnFetch,
+      payloadResponseOnly: true
     });
 
     const runTask = new tasks.EcsRunTask(this, 'RunFargate', {
@@ -40,6 +42,7 @@ export class DAPWorkflow extends Construct {
     })
 
     const stagingJob = new tasks.LambdaInvoke(this, 'Staging', {
+      inputPath: '$.',
       lambdaFunction: fnStaging
     })
 
