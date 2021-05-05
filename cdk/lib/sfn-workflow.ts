@@ -34,7 +34,7 @@ export class DAPWorkflow extends Construct {
             {name: 'ASSET_NAME', value: sfn.JsonPath.stringAt('$.asset_name')},
             {name: 'ASSET_FILENAME', value: sfn.JsonPath.stringAt('$.asset_name')},
             {name: 'ASSET_URL', value: sfn.JsonPath.stringAt('$.asset_name')},
-            {name: 'UPLOAD_ONLY_ONCE', value: sfn.JsonPath.stringAt('$.upload_only_once')},
+            {name: 'CRON_EXPRESSION', value: sfn.JsonPath.stringAt('$.cron_expression')},
             {name: 'EXEC_MODE', value: 'FARGATE'}
           ]
         }
