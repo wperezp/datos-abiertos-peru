@@ -107,7 +107,7 @@ def lambda_handler(event, context):
         "asset_name": asset_name,
         "asset_filename": asset_filename,
         "asset_url": asset_url,
-        "upload_only_once": upload_only_once,
+        "cron_expression": event.get('cron_expression') if event.get('cron_expression') is not None else "",
         "fetch_finished": function_finished
     }
     return fn_output
@@ -119,7 +119,8 @@ if __name__ == '__main__':
         asset_name = os.environ['ASSET_NAME']
         asset_filename = os.environ['ASSET_FILENAME']
         asset_url = os.environ['ASSET_URL']
-        upload_only_once = os.environ.get('CRON_EXPRESSION') is None
+        cron_expression = os.environ['CRON_EXPRESSION']
+        upload_only_once = cron_expression == ""
         fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once)
     elif os.environ['EXEC_MODE'] == 'LOCAL':
         f_catalog = parse_catalog('catalog.yml')
