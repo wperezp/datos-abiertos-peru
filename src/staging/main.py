@@ -1,10 +1,11 @@
 import boto3
 import os
 import cleaning
+import importlib
 
 
 def data_staging(asset_name, data):
-    asset_module = getattr(cleaning, asset_name)
+    asset_module = importlib.import_module(f"cleaning.{asset_name}")
     asset_module.clean(data)
     pass
 
