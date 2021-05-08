@@ -22,7 +22,7 @@ def lambda_handler(event, context):
             asset_dict[item['Name']] = item['Value']
         asset_name = asset_dict['ASSET_NAME']
         asset_filename = asset_dict['ASSET_FILENAME']
-    asset_obj = s3.get_object(Bucket=os.environ['S3_SOURCE_BUCKET'], Prefix=f'raw/{asset_filename}')
+    asset_obj = s3.get_object(Bucket=os.environ['S3_SOURCE_BUCKET'], Key=f'raw/{asset_filename}')
     data_staging(asset_name, asset_obj)
 
 
