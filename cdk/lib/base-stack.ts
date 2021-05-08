@@ -107,7 +107,6 @@ export class DAPBaseStack extends Stack {
     });
     
     this.sourceDataBucket.grantReadWrite(this.fnStaging);
-    this.sourceDataBucket.addObjectCreatedNotification(new LambdaDestination(this.fnStaging), {prefix: 'raw/'});
 
     // Workflow
     new DAPWorkflow(this, 'SfnWorkflow', this.fnFetch, fetchContainer, this.fnStaging);
