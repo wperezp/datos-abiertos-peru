@@ -1,18 +1,17 @@
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as ecs from "@aws-cdk/aws-ecs";
 import * as iam from "@aws-cdk/aws-iam";
-import { Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
+import { Construct, Duration } from "@aws-cdk/core";
 import { Bucket } from "@aws-cdk/aws-s3";
 import { Table } from "@aws-cdk/aws-dynamodb";
 import { Vpc } from "@aws-cdk/aws-ec2";
 import { Cluster, ContainerDefinition, ContainerImage, FargateTaskDefinition, LogDriver } from "@aws-cdk/aws-ecs";
 
-export class DAPFetchStack extends Stack {
+export class DAPFetchContainer extends Construct {
 
   readonly cluster: Cluster;
   readonly taskDefinition: FargateTaskDefinition;
   readonly containerDefinition: ContainerDefinition;
-  readonly fetchFn: lambda.Function;
   readonly invokeFetchFn: lambda.Function;
   readonly runTaskFn: lambda.Function;
 
@@ -20,57 +19,11 @@ export class DAPFetchStack extends Stack {
     scope: Construct,
     id: string,
     vpc: Vpc,
+    fnFetch: lambda.Function,
     sourceDataBucket: Bucket,
-    hashesTable: Table,
-    props?: StackProps,
+    hashesTable: Table
   ) {
-    super(scope, id, props);
-
-    this.fetchFn = new lambda.Function(this, "fnFetch", {
-      handler: "fetch.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset("../src/fetch/"),
-      memorySize: 1500,
-      timeout: Duration.minutes(15),
-      environment: {
-        DDB_HASHES_TABLE: hashesTable.tableName,
-        S3_DATA_BUCKET: sourceDataBucket.bucketName,
-      },
-      retryAttempts: 1,
-    });
-
-    hashesTable.grantReadWriteData(this.fetchFn);
-    sourceDataBucket.grantWrite(this.fetchFn);
-
-    const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-requests-html:37`;
-    const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(
-      this,
-      "fnLayerRequests",
-      requestsLayerArn
-    );
-    const yamlLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-PyYAML:4`;
-    const yamlLayer = lambda.LayerVersion.fromLayerVersionArn(
-      this,
-      "fnLayerYAML",
-      yamlLayerArn
-    );
-
-    this.fetchFn.addLayers(requestsLayer, yamlLayer);
-
-    const invokeFetchFn = new lambda.Function(this, "fnInvokeFetch", {
-      handler: "invoke.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset("../src/invoke"),
-      environment: {
-        FETCH_FUNCTION_NAME: this.fetchFn.functionName,
-      },
-      memorySize: 200,
-      timeout: Duration.minutes(1),
-    });
-
-    invokeFetchFn.addLayers(yamlLayer);
-
-    this.fetchFn.grantInvoke(invokeFetchFn);
+    super(scope, id);
 
     this.cluster = new ecs.Cluster(this, "ecsCluster", {
       containerInsights: true,
@@ -135,7 +88,7 @@ export class DAPFetchStack extends Stack {
     this.runTaskFn.addToRolePolicy(taskGrantPassRole);
     this.runTaskFn.addToRolePolicy(execGrantPassRole);
 
-    this.runTaskFn.grantInvoke(this.fetchFn);
-    this.fetchFn.addEnvironment("RUN_TASK_FUNCTION", this.runTaskFn.functionName);
+    this.runTaskFn.grantInvoke(fnFetch);
+    fnFetch.addEnvironment("RUN_TASK_FUNCTION", this.runTaskFn.functionName);
   }
 }
