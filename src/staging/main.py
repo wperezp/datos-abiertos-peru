@@ -1,13 +1,18 @@
 import boto3
 import os
 import importlib
+from datetime import datetime, timezone, timedelta
 
 
 def data_staging(asset_name, data):
     asset_module = importlib.import_module(f"cleaning.{asset_name}")
     asset_clean_func = getattr(asset_module, 'clean')
     cleaned_data = asset_clean_func(data['Body'].read())
-    s3_key = "s3://{0}/staging/{1}.csv".format(os.environ['S3_SOURCE_BUCKET'], asset_name)
+    tz_offset = -5.0 # Lima time (UTC-05:00)
+    tzinfo = timezone(timedelta(hours=tz_offset))
+    now = datetime.now(tzinfo)
+    bucket = os.environ['S3_SOURCE_BUCKET']
+    s3_key = "s3://{0}/staging/{1}/{2}.csv".format(bucket, asset_name, now.strftime('%Y%m%d%H%M%S'))
     cleaned_data.to_csv(s3_key, sep=';', index=False)
 
 
