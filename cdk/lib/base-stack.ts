@@ -103,7 +103,8 @@ export class DAPBaseStack extends Stack {
       timeout: Duration.minutes(15),
       environment: {
         S3_SOURCE_BUCKET: this.sourceDataBucket.bucketName
-      }
+      },
+      memorySize: 8192
     });
     
     this.sourceDataBucket.grantReadWrite(this.fnStaging);
