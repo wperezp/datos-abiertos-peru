@@ -6,8 +6,10 @@ import importlib
 
 def data_staging(asset_name, data):
     asset_module = importlib.import_module(f"cleaning.{asset_name}")
-    asset_module.clean(data)
-    pass
+    asset_clean_func = getattr(asset_module, 'clean')
+    cleaned_data = asset_clean_func(data['Body'].read())
+    s3_key = "s3://{0}/staging/{1}.csv".format(os.environ['S3_SOURCE_BUCKET'], asset_name)
+    cleaned_data.to_csv(s3_key, sep=';', index=False)
 
 
 def lambda_handler(event, context):
