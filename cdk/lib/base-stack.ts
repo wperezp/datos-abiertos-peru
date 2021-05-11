@@ -2,6 +2,7 @@ import * as dynamodb from "@aws-cdk/aws-dynamodb";
 import * as s3 from "@aws-cdk/aws-s3";
 import * as ec2 from "@aws-cdk/aws-ec2";
 import * as lambda from "@aws-cdk/aws-lambda";
+import * as glue from "@aws-cdk/aws-glue";
 import { Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
 import { LambdaDestination } from "@aws-cdk/aws-s3-notifications";
 import { DAPFetchContainer } from "./fetch-container";
@@ -103,7 +104,8 @@ export class DAPBaseStack extends Stack {
       timeout: Duration.minutes(15),
       environment: {
         S3_SOURCE_BUCKET: this.sourceDataBucket.bucketName
-      }
+      },
+      memorySize: 4096
     });
     
     this.sourceDataBucket.grantReadWrite(this.fnStaging);
