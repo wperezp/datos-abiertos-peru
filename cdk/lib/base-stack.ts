@@ -126,7 +126,7 @@ export class DAPBaseStack extends Stack {
         scriptLocation: `s3://${this.provisioningDataBucket.bucketName}/scripts/default.py`
       },
       role: provisioningGlueRole.roleArn,
-      glueVersion: '2',
+      glueVersion: '2.0',
       executionProperty: {
         maxConcurrentRuns: 50.0
       },
