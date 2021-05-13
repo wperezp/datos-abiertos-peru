@@ -1,4 +1,5 @@
 import boto3
+import copy
 import os
 import importlib
 from datetime import datetime, timezone, timedelta
@@ -31,5 +32,10 @@ def lambda_handler(event, context):
         asset_filename = asset_dict['ASSET_FILENAME']
     asset_obj = s3.get_object(Bucket=os.environ['S3_SOURCE_BUCKET'], Key=f'raw/{asset_filename}')
     data_staging(asset_name, asset_obj)
+    output = {
+        "asset_name": asset_name,
+        "asset_etl_script": "s3://{0}/scripts/{1}.py".format(os.environ['S3_PROVISIONING_BUCKET'], asset_name)
+    }
+    return output
 
 

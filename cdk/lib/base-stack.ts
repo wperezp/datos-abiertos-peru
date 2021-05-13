@@ -117,7 +117,7 @@ export class DAPBaseStack extends Stack {
       assumedBy: new AnyPrincipal()
     })
     this.sourceDataBucket.grantReadWrite(provisioningGlueRole)
-    provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSGlueServiceRole'))
+    provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'))
 
     this.provisioningJob = new glue.CfnJob(this, 'provisioningJob', {
       command: {
