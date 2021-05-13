@@ -3,10 +3,11 @@ import * as s3 from "@aws-cdk/aws-s3";
 import * as ec2 from "@aws-cdk/aws-ec2";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as glue from "@aws-cdk/aws-glue";
+import * as iam from "@aws-cdk/aws-iam";
 import { Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
-import { LambdaDestination } from "@aws-cdk/aws-s3-notifications";
 import { DAPFetchContainer } from "./fetch-container";
 import { DAPWorkflow } from "./sfn-workflow";
+import { AnyPrincipal } from "@aws-cdk/aws-iam";
 
 export class DAPBaseStack extends Stack {
   
@@ -17,6 +18,7 @@ export class DAPBaseStack extends Stack {
   readonly fnFetch: lambda.Function;
   readonly fnInvokeFetch: lambda.Function;
   readonly fnStaging: lambda.Function;
+  readonly provisioningJob: glue.CfnJob;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -110,8 +112,30 @@ export class DAPBaseStack extends Stack {
     
     this.sourceDataBucket.grantReadWrite(this.fnStaging);
 
+
+    const provisioningGlueRole = new iam.Role(this, 'prvRole', {
+      assumedBy: new AnyPrincipal()
+    })
+    this.sourceDataBucket.grantReadWrite(provisioningGlueRole)
+    provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSGlueServiceRole'))
+
+    this.provisioningJob = new glue.CfnJob(this, 'provisioningJob', {
+      command: {
+        name: 'glueetl',
+        pythonVersion: '3',
+        scriptLocation: `s3://${this.provisioningDataBucket.bucketName}/scripts/default.py`
+      },
+      role: provisioningGlueRole.roleArn,
+      glueVersion: '2',
+      executionProperty: {
+        maxConcurrentRuns: 50.0
+      },
+      maxCapacity: 2,
+      name: 'ProvisioningJob'
+    })
+
     // Workflow
-    new DAPWorkflow(this, 'SfnWorkflow', this.fnFetch, fetchContainer, this.fnStaging);
+    new DAPWorkflow(this, 'SfnWorkflow', this.fnFetch, fetchContainer, this.fnStaging, this.provisioningJob, this.provisioningDataBucket);
     
   }
 }

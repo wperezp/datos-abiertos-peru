@@ -3,17 +3,20 @@ import * as tasks from '@aws-cdk/aws-stepfunctions-tasks';
 import * as lambda from '@aws-cdk/aws-lambda';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
-import SourceDescription from '../utils/source-descriptor';
-import { Construct } from '@aws-cdk/core';
+import * as glue from "@aws-cdk/aws-glue";
 import * as targets from '@aws-cdk/aws-events-targets';
+import * as s3 from "@aws-cdk/aws-s3"
+import { Construct } from '@aws-cdk/core';
 import { Rule, RuleTargetInput, Schedule } from '@aws-cdk/aws-events';
 import { DAPFetchContainer } from './fetch-container';
+import SourceDescription from '../utils/source-descriptor';
 import { TaskInput } from '@aws-cdk/aws-stepfunctions';
 
 export class DAPWorkflow extends Construct {
   readonly workflowStateMachine: sfn.StateMachine;
 
-  constructor(scope: Construct, id: string, fnFetch: lambda.Function, fetchContainer: DAPFetchContainer, fnStaging: lambda.Function) {
+  constructor(scope: Construct, id: string, fnFetch: lambda.Function, fetchContainer: DAPFetchContainer, fnStaging: lambda.Function,
+    provisioningJob: glue.CfnJob, provisioningBucket: s3.Bucket) {
     super(scope, id);
 
     const fetchAsset = new tasks.LambdaInvoke(this, 'FetchAsset', {
@@ -45,13 +48,21 @@ export class DAPWorkflow extends Construct {
       lambdaFunction: fnStaging
     })
 
+    const provisioningGlueJob = new tasks.GlueStartJobRun(this, 'Provisioning', {
+      glueJobName: provisioningJob.name!,
+      arguments: TaskInput.fromObject({
+        "--scriptLocation": `s3://${provisioningBucket.bucketName}/scripts/${sfn.JsonPath.stringAt('$.asset_name')}.py`
+      })
+    })
+
     const definition = fetchAsset
       .next(new sfn.Choice(this, 'FetchFinished?')
         .when(sfn.Condition.booleanEquals('$.fetch_finished', false), runTask)
         .otherwise(new sfn.Pass(this, 'Pass'))
         .afterwards()
       )
-      .next(stagingJob);
+      .next(stagingJob)
+      .next(provisioningGlueJob);
     
     this.workflowStateMachine = new sfn.StateMachine(this, 'StateMachine', {
       definition: definition
