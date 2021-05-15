@@ -1,6 +1,5 @@
 version: 2.1
 orbs:
-  aws-cli: circleci/aws-cli@1.3.2
   node: circleci/node@4.3.0
 jobs:
   build:
@@ -43,6 +42,18 @@ jobs:
           name: CDK deploy
           command: npm run deploy
           working_directory: cdk
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cdk/outputs.json
+    upload_files:
+      executor: amazon/aws-cli
+      steps:
+        - attach_workspace:
+          at: .
+        - run:
+            command: ls
+            working_directory: cdk
 
 workflows:
   development:
@@ -55,6 +66,9 @@ workflows:
           region: us-east-1
           requires:
             - build
+      - upload_files:
+            requires:
+              - deploy
   production:
     when:
       and:
@@ -65,3 +79,6 @@ workflows:
           region: us-east-2
           requires:
             - build
+      - upload_files:
+          requires:
+            - deploy
