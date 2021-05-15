@@ -133,10 +133,18 @@ export class DAPBaseStack extends Stack {
       role: provisioningGlueRole.roleArn,
       glueVersion: '2.0',
       executionProperty: {
-        maxConcurrentRuns: 50.0
+        maxConcurrentRuns: 50.0,
       },
       maxCapacity: 2,
-      name: 'ProvisioningJob'
+      name: 'ProvisioningJob',
+      defaultArguments: {
+        "--TempDir": `s3://${this.provisioningDataBucket.bucketName}/temp/`,
+        "--enable-s3-parquet-optimized-committer": true,
+        "--enable-glue-datacatalog": true,
+        "--enable-rename-algorithm-v2": true,
+        "--enable-continuous-cloudwatch-log": true,
+        "--enable-spark-ui": true
+      }
     })
 
     // Workflow
