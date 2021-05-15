@@ -47,7 +47,8 @@ jobs:
           paths:
             - cdk/outputs.json
   upload_files:
-    executor: amazon/aws-cli
+    docker: 
+      - image: amazon/aws-cli:latest
     steps:
       - attach_workspace:
           at: .
