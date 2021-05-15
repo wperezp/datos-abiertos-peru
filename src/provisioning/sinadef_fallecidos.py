@@ -12,7 +12,7 @@ db_provisioning = 'dap-provisioning-data'
 db_staging = 'dap-staging-data'
 tbl_name = 'sinadef_fallecidos'
 
-dyf_staging = glueContext.create_dynamic_frame.from_catalog(database=db_staging, table_name=tbl_name)
+dyf_staging: DynamicFrame = glueContext.create_dynamic_frame.from_catalog(database=db_staging, table_name=tbl_name)
 df_staging = dyf_staging.toDF()
 
 print(df_staging.columns)

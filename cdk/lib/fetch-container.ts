@@ -72,21 +72,21 @@ export class DAPFetchContainer extends Construct {
     grantEcsRunTask.addActions("ecs:RunTask");
     grantEcsRunTask.addResources(this.taskDefinition.taskDefinitionArn);
 
-    const taskGrantPassRole = new iam.PolicyStatement();
-    taskGrantPassRole.addActions("iam:PassRole");
-    taskGrantPassRole.addResources(
+    const taskGrantPass = new iam.PolicyStatement();
+    taskGrantPass.addActions("iam:PassRole");
+    taskGrantPass.addResources(
       this.taskDefinition.taskRole.roleArn
     );
 
-    const execGrantPassRole = new iam.PolicyStatement();
-    execGrantPassRole.addActions("iam:PassRole");
-    execGrantPassRole.addResources(
+    const execGrantPass = new iam.PolicyStatement();
+    execGrantPass.addActions("iam:PassRole");
+    execGrantPass.addResources(
       this.taskDefinition.executionRole!.roleArn
     );
 
     this.runTaskFn.addToRolePolicy(grantEcsRunTask);
-    this.runTaskFn.addToRolePolicy(taskGrantPassRole);
-    this.runTaskFn.addToRolePolicy(execGrantPassRole);
+    this.runTaskFn.addToRolePolicy(taskGrantPass);
+    this.runTaskFn.addToRolePolicy(execGrantPass);
 
     this.runTaskFn.grantInvoke(fnFetch);
     fnFetch.addEnvironment("RUN_TASK_FUNCTION", this.runTaskFn.functionName);
