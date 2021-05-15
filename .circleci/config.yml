@@ -46,14 +46,14 @@ jobs:
           root: .
           paths:
             - cdk/outputs.json
-    upload_files:
-      executor: amazon/aws-cli
-      steps:
-        - attach_workspace:
+  upload_files:
+    executor: amazon/aws-cli
+    steps:
+      - attach_workspace:
           at: .
-        - run:
-            command: ls
-            working_directory: cdk
+      - run:
+          command: ls
+          working_directory: cdk
 
 workflows:
   development:
