@@ -112,15 +112,15 @@ export class DAPBaseStack extends Stack {
     
     this.sourceDataBucket.grantReadWrite(this.fnStaging);
 
-    const provisioningGluePolicy = new iam.PolicyStatement();
-    provisioningGluePolicy.addActions("s3:*")
-    provisioningGluePolicy.addResources(this.sourceDataBucket.bucketArn, this.provisioningDataBucket.bucketArn);
+    // const provisioningGluePolicy = new iam.PolicyStatement();
+    // provisioningGluePolicy.addActions("s3:*")
+    // provisioningGluePolicy.addResources(this.sourceDataBucket.bucketArn, this.provisioningDataBucket.bucketArn);
 
     const provisioningGlueRole = new iam.Role(this, 'prvRole', {
       assumedBy: new AnyPrincipal()
     })
 
-    provisioningGlueRole.addToPolicy(provisioningGluePolicy);
+    this.sourceDataBucket.grantReadWrite(provisioningGlueRole);
     provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'))
     
 
