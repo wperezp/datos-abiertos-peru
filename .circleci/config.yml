@@ -50,12 +50,14 @@ jobs:
     docker: 
       - image: amazon/aws-cli:latest
     steps:
-      - run: yum install tar gzip tree jq -y
+      - run: yum install tar gzip jq -y
       - attach_workspace:
           at: .
       - run:
-          command: tree
-
+          name: Upload PySpark files
+          command: |
+            bucket=$(cat cdk/outputs.json | jq -r .DAPBaseStack.ProvisioningBucket)
+            aws s3 cp src/provisioning/* s3://${bucket}/scripts/*
 workflows:
   development:
     unless:
