@@ -4,7 +4,7 @@ import * as ec2 from "@aws-cdk/aws-ec2";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as glue from "@aws-cdk/aws-glue";
 import * as iam from "@aws-cdk/aws-iam";
-import { Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
 import { DAPFetchContainer } from "./fetch-container";
 import { DAPWorkflow } from "./sfn-workflow";
 import { AnyPrincipal } from "@aws-cdk/aws-iam";
@@ -136,6 +136,14 @@ export class DAPBaseStack extends Stack {
 
     // Workflow
     new DAPWorkflow(this, 'SfnWorkflow', this.fnFetch, fetchContainer, this.fnStaging, this.provisioningJob, this.provisioningDataBucket);
+
+    // Outputs
+    new CfnOutput(this, 'SourceBucket', {
+      value: this.sourceDataBucket.bucketName
+    });
+    new CfnOutput(this, 'ProvisioningBucket', {
+      value: this.provisioningDataBucket.bucketName
+    });
     
   }
 }
