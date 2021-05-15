@@ -50,7 +50,7 @@ jobs:
     docker: 
       - image: amazon/aws-cli:latest
     steps:
-      - run: yum install tar -y
+      - run: yum install tar gzip jq -y
       - attach_workspace:
           at: .
       - run:
