@@ -50,12 +50,11 @@ jobs:
     docker: 
       - image: amazon/aws-cli:latest
     steps:
-      - run: yum install tar gzip jq -y
+      - run: yum install tar gzip tree jq -y
       - attach_workspace:
           at: .
       - run:
-          command: ls
-          working_directory: cdk
+          command: tree
 
 workflows:
   development:
