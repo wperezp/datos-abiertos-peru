@@ -45,8 +45,7 @@ export class DAPWorkflow extends Construct {
     })
 
     const stagingJob = new tasks.LambdaInvoke(this, 'Staging', {
-      lambdaFunction: fnStaging,
-
+      lambdaFunction: fnStaging
     })
 
 

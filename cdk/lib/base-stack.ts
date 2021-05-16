@@ -7,7 +7,7 @@ import * as iam from "@aws-cdk/aws-iam";
 import { CfnOutput, Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
 import { DAPFetchContainer } from "./fetch-container";
 import { DAPWorkflow } from "./sfn-workflow";
-import { AnyPrincipal } from "@aws-cdk/aws-iam";
+import { AnyPrincipal, ServicePrincipal } from "@aws-cdk/aws-iam";
 
 export class DAPBaseStack extends Stack {
   
@@ -117,15 +117,14 @@ export class DAPBaseStack extends Stack {
     // provisioningGluePolicy.addResources(this.sourceDataBucket.bucketArn, this.provisioningDataBucket.bucketArn);
 
     const provisioningGlueRole = new iam.Role(this, 'prvRole', {
-      assumedBy: new AnyPrincipal()
+      assumedBy: new ServicePrincipal('glue.amazonaws.com')
     })
 
     this.sourceDataBucket.grantReadWrite(provisioningGlueRole);
     this.provisioningDataBucket.grantReadWrite(provisioningGlueRole);
     provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'))
-    
 
-    this.provisioningJob = new glue.CfnJob(this, 'provisioningJob', {
+    this.provisioningJob = new glue.CfnJob(this, 'prvJob', {
       command: {
         name: 'glueetl',
         pythonVersion: '3',
@@ -137,7 +136,7 @@ export class DAPBaseStack extends Stack {
         maxConcurrentRuns: 50.0,
       },
       maxCapacity: 2,
-      name: 'ProvisioningJob',
+      name: 'DAPProvisioningJob',
       defaultArguments: {
         "--TempDir": `s3://${this.provisioningDataBucket.bucketName}/temp/`,
         "--enable-s3-parquet-optimized-committer": true,
