@@ -15,8 +15,18 @@ tbl_name = 'sinadef_fallecidos'
 dyf_staging: DynamicFrame = glueContext.create_dynamic_frame.from_catalog(database=db_staging, table_name=tbl_name)
 df_staging = dyf_staging.toDF()
 
-print(df_staging.columns)
-df_staging.show(10)
+
+if tbl_name not in spark.catalog.listTables(db_provisioning):
+    sink = glueContext.write_dynamic_frame_from_options(
+        frame=dyf_staging,
+        connection_type="parquet",
+        connection_options={
+            "path": f"s3://dapbasestack-provisiondata70827853-dhic82n9go2r/data/{tbl_name}/"
+        }
+    )
+else:
+    print("well it exist what can i tell you")
+
 
 
 # if tbl_name not in [t.name for t in spark.catalog.listTables(db_provisioning)]:

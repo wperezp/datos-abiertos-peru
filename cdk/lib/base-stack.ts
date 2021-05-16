@@ -121,7 +121,7 @@ export class DAPBaseStack extends Stack {
     })
 
     this.sourceDataBucket.grantReadWrite(provisioningGlueRole);
-    this.provisioningDataBucket.grantRead(provisioningGlueRole);
+    this.provisioningDataBucket.grantReadWrite(provisioningGlueRole);
     provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'))
     
 
