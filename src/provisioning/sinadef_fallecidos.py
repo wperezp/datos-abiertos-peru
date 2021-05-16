@@ -22,7 +22,9 @@ if tbl_name not in spark.catalog.listTables(db_provisioning):
     )
 else:
     df_staging: DataFrame = dyf_staging.toDF()
-    
+    dyf_provisioning: DynamicFrame = glueContext.create_dynamic_frame.from_catalog(database=db_staging, table_name=tbl_name)
+    df_provisioning: DataFrame = dyf_provisioning.toDF()
+    df_provisioning.union(df_staging)
 
 
 
