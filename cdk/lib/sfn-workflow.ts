@@ -52,7 +52,7 @@ export class DAPWorkflow extends Construct {
     const provisioningGlueJob = new tasks.GlueStartJobRun(this, 'Provisioning', {
       glueJobName: provisioningJob.name!,
       arguments: TaskInput.fromObject({
-        "--scriptLocation": sfn.JsonPath.stringAt('$.asset_etl_script'),
+        "--scriptLocation": sfn.JsonPath.stringAt('$.Payload.asset_etl_script'),
         "--enable-s3-parquet-optimized-committer": "true",
         "--enable-glue-datacatalog": "true",
         "--enable-rename-algorithm-v2": "true",
