@@ -1,5 +1,4 @@
 import boto3
-import copy
 import os
 import importlib
 from datetime import datetime, timezone, timedelta
@@ -13,8 +12,10 @@ def data_staging(asset_name, data):
     tzinfo = timezone(timedelta(hours=tz_offset))
     now = datetime.now(tzinfo)
     bucket = os.environ['S3_SOURCE_BUCKET']
-    s3_key = "s3://{0}/staging/{1}/{2}.csv".format(bucket, asset_name, now.strftime('%Y%m%d%H%M%S'))
+    s3_key = "s3://{0}/staging/{1}/{1}.csv".format(bucket, asset_name)
     cleaned_data.to_csv(s3_key, sep=';', index=False)
+    s3_archive_key = "s3://{0}/archive/{1}/{2}.csv".format(bucket, asset_name, now.strftime('%Y%m%d%H%M%S'))
+    cleaned_data.to_csv(s3_archive_key, sep=';', index=False)
 
 
 def lambda_handler(event, context):
