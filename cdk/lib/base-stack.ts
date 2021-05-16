@@ -105,7 +105,8 @@ export class DAPBaseStack extends Stack {
       code: lambda.DockerImageCode.fromImageAsset('../src/staging/'),
       timeout: Duration.minutes(15),
       environment: {
-        S3_SOURCE_BUCKET: this.sourceDataBucket.bucketName
+        S3_SOURCE_BUCKET: this.sourceDataBucket.bucketName,
+        S3_PROVISIONING_BUCKET: this.provisioningDataBucket.bucketName
       },
       memorySize: 4096
     });
