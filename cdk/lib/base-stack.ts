@@ -145,9 +145,9 @@ export class DAPBaseStack extends Stack {
         "--enable-rename-algorithm-v2": true,
         "--enable-continuous-cloudwatch-log": true,
         "--enable-spark-ui": true,
-        "--provisioning-bucket": this.provisioningDataBucket.bucketName,
-        "--staging-db": "dap-staging-data",
-        "--provisioning-db": "dap-provisioning-db"
+        "--provisioning_bucket": this.provisioningDataBucket.bucketName,
+        "--staging_db": "dap-staging-data",
+        "--provisioning_db": "dap-provisioning-db"
       }
     })
 

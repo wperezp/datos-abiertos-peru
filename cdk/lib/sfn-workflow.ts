@@ -58,10 +58,11 @@ export class DAPWorkflow extends Construct {
         "--enable-rename-algorithm-v2": "true",
         "--enable-continuous-cloudwatch-log": "true",
         "--enable-spark-ui": "true",
-        "--provisioning-bucket": provisioningBucket.bucketName,
-        "--staging-db": "dap-staging-data",
-        "--provisioning-db": "dap-provisioning-db"
-      })
+        "--provisioning_bucket": provisioningBucket.bucketName,
+        "--staging_db": "dap-staging-data",
+        "--provisioning_db": "dap-provisioning-db"
+      }),
+
     })
 
     const definition = fetchAsset

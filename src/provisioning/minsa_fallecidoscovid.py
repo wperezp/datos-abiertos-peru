@@ -7,15 +7,15 @@ from awsglue.dynamicframe import DynamicFrame
 from awsglue.utils import getResolvedOptions
 
 
-args = getResolvedOptions(sys.argv, ['provisioning-bucket', 'staging-db', 'provisioning-db'])
+args = getResolvedOptions(sys.argv, ['provisioning_bucket', 'staging_db', 'provisioning_db'])
 sc = SparkContext()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 logger = glueContext.get_logger()
 
-db_staging = args['provisioning-db']
-db_provisioning = args['staging-db']
-provisioning_bucket = args['provisioning-bucket']
+db_staging = args['provisioning_db']
+db_provisioning = args['staging_db']
+provisioning_bucket = args['provisioning_bucket']
 tbl_name = 'minsa_fallecidoscovid'
 
 
