@@ -2,6 +2,7 @@ import sys
 
 from pyspark.context import SparkContext
 from pyspark.sql import DataFrame
+from pyspark.sql.functions import *
 from awsglue.context import GlueContext
 from awsglue.dynamicframe import DynamicFrame
 from awsglue.utils import getResolvedOptions
@@ -37,6 +38,7 @@ dyf_staging = dyf_staging.applyMapping(mappings=[
     ('tipo lugar', 'string', 'tipo_lugar', 'string'),
     ('institucion', 'string', 'institucion', 'string'),
     ('muerte violenta', 'string', 'muerte_violenta', 'string'),
+    ('necropsia', 'string', 'necropsia', 'string'),
     ('debido a (causa a)', 'string', 'causa_a', 'string'),
     ('debido a (causa b)', 'string', 'causa_b', 'string'),
     ('debido a (causa c)', 'string', 'causa_c', 'string'),
@@ -51,18 +53,13 @@ dyf_staging = dyf_staging.applyMapping(mappings=[
     ('causa f (cie-x)', 'string', 'causa_f_cie', 'string'),
 ])
 
-# prv_tables = [x.name for x in spark.catalog.listTables(db_provisioning)]
+df_staging = dyf_staging.toDF()
+df_necropsia = df_staging.withColumn('necropsia_bool', when(col('necropsia') == 'NO SE REALIZÓ NECROPSIA', False)
+                                     .when(col('necropsia') == 'SI SE REALIZÓ NECROPSIA', True)
+                                     .when(col('necropsia') == 'SIN REGISTRO', None))
+df_dropped = df_necropsia.drop('necropsia')
+df_final = df_dropped.withColumnRenamed('necropsia_bool', 'necropsia')
 
-# if tbl_name not in prv_tables:
-#     df_final = dyf_staging.toDF()
-# else:
-#     df_staging: DataFrame = dyf_staging.toDF()
-#     dyf_prv = glueContext.create_dynamic_frame_from_catalog(database=db_provisioning, table_name=tbl_name)
-#     df_prv = dyf_prv.toDF()
-#     df_union = df_prv.unionAll(df_staging)
-#     df_union_unique = df_union.dropDuplicates(subset=['uuid_fallecimiento'])
-#     df_final = df_union_unique
 
-df_final = dyf_staging.toDF()
 df_final \
     .write.mode('overwrite').format('parquet').save(f"s3://{provisioning_bucket}/data/{tbl_name}/")
