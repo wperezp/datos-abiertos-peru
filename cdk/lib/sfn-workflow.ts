@@ -60,7 +60,7 @@ export class DAPWorkflow extends Construct {
         "--enable-spark-ui": "true",
         "--provisioning_bucket": provisioningBucket.bucketName,
         "--staging_db": "dap-staging-data",
-        "--provisioning_db": "dap-provisioning-db"
+        "--provisioning_db": "dap-provisioning-data"
       }),
 
     })

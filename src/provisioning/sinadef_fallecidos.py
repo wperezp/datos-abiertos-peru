@@ -13,8 +13,8 @@ glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 logger = glueContext.get_logger()
 
-db_staging = args['provisioning_db']
-db_provisioning = args['staging_db']
+db_staging = args['staging_db']
+db_provisioning = args['provisioning_db']
 provisioning_bucket = args['provisioning_bucket']
 tbl_name = 'sinadef_fallecidos'
 
