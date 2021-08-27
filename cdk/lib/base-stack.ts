@@ -76,7 +76,6 @@ export class DAPBaseStack extends Stack {
     );
 
     this.fnPrepareFetch.addLayers(requestsLayer);
-    this.fnInvokeAll.addLayers(yamlLayer);
 
     // Staging function
     this.fnStaging = new lambda.DockerImageFunction(this, "fnCleaning",{
@@ -139,6 +138,7 @@ export class DAPBaseStack extends Stack {
       timeout: Duration.minutes(1)
     });
 
+    this.fnInvokeAll.addLayers(yamlLayer);
     this.fnPrepareFetch.grantInvoke(this.fnInvokeAll)
 
     // Outputs
