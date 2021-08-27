@@ -68,11 +68,7 @@ export class DAPWorkflow extends Construct {
     })
 
     const definition = prepareFetch
-      .next(new sfn.Choice(this, 'FetchFinished?')
-        .when(sfn.Condition.booleanEquals('$.fetch_finished', false), runTask)
-        .otherwise(new sfn.Pass(this, 'Pass'))
-        .afterwards()
-      )
+      .next(runTask)
       .next(stagingJob)
       .next(provisioningGlueJob);
     
