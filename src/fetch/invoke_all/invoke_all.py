@@ -22,8 +22,7 @@ def invoke_for_all_assets(catalog: dict, stmxn_arn: str):
             'asset_filename': asset_filename,
             'asset_url': asset_url
         }
-        if item.get('CronExpression') is not None:
-            payload['cron_expression'] = item['CronExpression']
+        payload['cron_expression'] = item.get('CronExpression') is not None ? item['CronExpression'] : ""
         sfn_client.start_execution(
             stateMachineArn=stmxn_arn,
             input=json.dumps(payload)

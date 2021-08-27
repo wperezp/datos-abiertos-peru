@@ -1,5 +1,6 @@
 import boto3
 import requests
+import math
 
 
 def lambda_handler(event, context):
@@ -11,7 +12,7 @@ def lambda_handler(event, context):
     if total_length is not None:
         size_in_mb = round(float(total_length) / 1048576, 2)
         print(f"Asset file size: {size_in_mb} M")
-        fetch_container_memory = size_in_mb + 1000
+        fetch_container_memory = math.ceil(size_in_mb + 1000)
     else:
         print(f"Can't determine file size. Assuming 8192 M")
         size_in_mb = 8192 # assume a default 8GB tops in case no content-length header is available
