@@ -17,12 +17,8 @@ def invoke_for_all_assets(catalog: dict, stmxn_arn: str):
         print(f"Invoke {asset_name}")
         asset_filename = item['Filename']
         asset_url = item['URI']
-        payload = {
-            'asset_name': asset_name,
-            'asset_filename': asset_filename,
-            'asset_url': asset_url
-        }
-        payload['cron_expression'] = item['CronExpression'] if item.get('CronExpression') is not None else ""
+        payload = {'asset_name': asset_name, 'asset_filename': asset_filename, 'asset_url': asset_url,
+                   'cron_expression': item['CronExpression'] if item.get('CronExpression') is not None else ""}
         sfn_client.start_execution(
             stateMachineArn=stmxn_arn,
             input=json.dumps(payload)

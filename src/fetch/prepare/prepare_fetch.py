@@ -16,12 +16,12 @@ def lambda_handler(event, context):
         fetch_container_memory = math.ceil(size_in_mb + 1000)
     else:
         print(f"Can't determine file size. Assuming 8192 M")
-        size_in_mb = 8192 # assume a default 8GB tops in case no content-length header is available
+        size_in_mb = 8192  # assume a default 8GB tops in case no content-length header is available
         fetch_container_memory = size_in_mb
     return {
         "asset_name": asset_name,
         "asset_filename": asset_filename,
-        "asset_url": asset_url,,
+        "asset_url": asset_url,
         "cron_expression": cron_expression,
         "size_in_mb": size_in_mb,
         "fetch_container_memory": fetch_container_memory
