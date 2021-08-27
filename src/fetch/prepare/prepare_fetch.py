@@ -7,6 +7,7 @@ def lambda_handler(event, context):
     asset_name = event['asset_name']
     asset_filename = event['asset_filename']
     asset_url = event['asset_url']
+    cron_expression = event['cron_expression']
     response = requests.get(asset_url, stream=True)
     total_length = response.headers.get('Content-Length')
     if total_length is not None:
@@ -20,7 +21,8 @@ def lambda_handler(event, context):
     return {
         "asset_name": asset_name,
         "asset_filename": asset_filename,
-        "asset_url": asset_url,
+        "asset_url": asset_url,,
+        "cron_expression": cron_expression,
         "size_in_mb": size_in_mb,
         "fetch_container_memory": fetch_container_memory
     }
