@@ -73,7 +73,7 @@ export class DAPBaseStack extends Stack {
       timeout: Duration.minutes(1)
     });
 
-    const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-requests-html:37`;
+    const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-requests:20`;
     const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(
       this,
       "fnLayerRequests",
