@@ -140,6 +140,7 @@ export class DAPBaseStack extends Stack {
 
     this.fnInvokeAll.addLayers(yamlLayer);
     this.fnPrepareFetch.grantInvoke(this.fnInvokeAll)
+    sfn_stmxn.workflowStateMachine.grantStartExecution(this.fnInvokeAll);
 
     // Outputs
     new CfnOutput(this, 'SourceBucket', {
