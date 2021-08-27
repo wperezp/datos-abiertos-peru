@@ -35,8 +35,8 @@ jobs:
       - run:
           name: Compile catalogs
           command: |
-            cat catalogs/*.yml > fetch/catalog.yml
-            cat catalogs/*.yml > invoke/catalog.yml
+            cat catalogs/*.yml > fetch/fetch/catalog.yml
+            cat catalogs/*.yml > fetch/invoke_all/catalog.yml
           working_directory: src
       - run: 
           name: CDK deploy

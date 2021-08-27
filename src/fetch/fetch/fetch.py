@@ -46,8 +46,7 @@ def asset_exists(asset_name: str) -> bool:
         return False
 
 
-def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_only_once=False, lambda_context=None,
-                  invoke_fargate=False):
+def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_only_once=False):
     print(f"Asset name: {asset_name}")
     if upload_only_once:
         print(f"Checking if it's already uploaded")
@@ -55,62 +54,17 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_o
             print(f"Already uploaded")
             return
     print(f"Downloading from {asset_url}")
-    response = requests.get(asset_url, stream=True)
-    full_content = bytes(0)
-    total_length = response.headers.get('Content-Length')
-    if total_length is not None:
-        total_length = int(total_length)
-        print(f'File size: {round(float(total_length) / 1048576, 2)}M')
-        dl = 0
-        prg = 0
-        chunk_size = 1048576
-        start = time.perf_counter()
-        count = 0
-        for data in response.iter_content(chunk_size=chunk_size):
-            dl += len(data)
-            full_content += data
-            done = float(dl) / total_length
-            elapsed = time.perf_counter() - start
-            speed = (float(dl)) / elapsed
-            eta = float(total_length - dl) / speed
-            count += 1
-            if prg < int(done * 100):  # Imprimir cada 1% por lo menos
-                prg = int(done * 100)
-                print(f"{prg}% {round(speed / 1000000, 2)} Mbps ETA {int(eta)}s")
-            if count == 10 and invoke_fargate:  # Evaluar si disparar fargate despues de los primeros 10MB de descarga
-                remaining = int(lambda_context.get_remaining_time_in_millis() / 1000)
-                if (eta + 30) > remaining:
-                    print("ETA is longer than remaining time for this function. Transfer to Fargate")
-                    return False
-    else:
-        print('Total file length not available in headers')
-        full_content = response.content
+    response = requests.get(asset_url)
+    full_content = response.content
     if is_newer_version(asset_name, full_content):
         s3 = boto3.resource('s3')
         bucket = s3.Bucket(os.environ['S3_DATA_BUCKET'])
         bucket.put_object(Key=f'raw/{asset_filename}', Body=full_content)
-    return True
 
 
 def parse_catalog(filename: str):
     f_content = open(filename, 'r').read()
     return yaml.safe_load(f_content)
-
-
-def lambda_handler(event, context):
-    asset_name = event['asset_name']
-    asset_filename = event['asset_filename']
-    asset_url = event['asset_url']
-    upload_only_once = event.get('cron_expression') is None
-    function_finished = fetch_dataset(asset_name, asset_filename, asset_url, upload_only_once, context, True)
-    fn_output = {
-        "asset_name": asset_name,
-        "asset_filename": asset_filename,
-        "asset_url": asset_url,
-        "cron_expression": event.get('cron_expression') if event.get('cron_expression') is not None else "",
-        "fetch_finished": function_finished
-    }
-    return fn_output
 
 
 if __name__ == '__main__':
