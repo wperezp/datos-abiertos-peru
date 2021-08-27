@@ -26,7 +26,7 @@ def invoke_for_all_assets(catalog: dict, stmxn_arn: str):
             payload['cron_expression'] = item['CronExpression']
         sfn_client.start_execution(
             stateMachineArn=stmxn_arn,
-            input=json.dumps(payload).encode('utf-8')
+            input=json.dumps(payload)
         )
 
 
