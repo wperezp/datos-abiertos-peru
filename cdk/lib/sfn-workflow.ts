@@ -84,7 +84,7 @@ export class DAPWorkflow extends Construct {
   }
 
   private scheduleWorkflowFromCatalog() {
-    let fileContents = fs.readFileSync('../src/fetch/catalog.yml', 'utf-8');
+    let fileContents = fs.readFileSync('../src/fetch/fetch/catalog.yml', 'utf-8');
     let sourcesCatalog = yaml.load(fileContents) as SourceDescription;
 
     for (let [_, item] of Object.entries(sourcesCatalog)) {

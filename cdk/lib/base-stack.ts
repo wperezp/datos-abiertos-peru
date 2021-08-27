@@ -67,7 +67,7 @@ export class DAPBaseStack extends Stack {
       runtime: lambda.Runtime.PYTHON_3_8,
       code: lambda.Code.fromAsset("../src/fetch/invoke_all"),
       environment: {
-        FETCH_FUNCTION_NAME: this.fnRunFetchTask.functionName,
+        FETCH_FUNCTION_NAME: this.fnPrepareFetch.functionName,
       },
       memorySize: 200,
       timeout: Duration.minutes(1)
