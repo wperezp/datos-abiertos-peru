@@ -15,12 +15,12 @@ import { TaskInput } from '@aws-cdk/aws-stepfunctions';
 export class DAPWorkflow extends Construct {
   readonly workflowStateMachine: sfn.StateMachine;
 
-  constructor(scope: Construct, id: string, fnFetch: lambda.Function, fetchContainer: DAPFetchContainer, fnStaging: lambda.Function,
+  constructor(scope: Construct, id: string, fnPrepareFetch: lambda.Function, fetchContainer: DAPFetchContainer, fnStaging: lambda.Function,
     provisioningJob: glue.CfnJob, provisioningBucket: s3.Bucket) {
     super(scope, id);
 
-    const fetchAsset = new tasks.LambdaInvoke(this, 'FetchAsset', {
-      lambdaFunction: fnFetch,
+    const prepareFetch = new tasks.LambdaInvoke(this, 'PrepareFetch', {
+      lambdaFunction: fnPrepareFetch,
       payloadResponseOnly: true
     });
 
@@ -38,6 +38,7 @@ export class DAPWorkflow extends Construct {
             {name: 'ASSET_FILENAME', value: sfn.JsonPath.stringAt('$.asset_filename')},
             {name: 'ASSET_URL', value: sfn.JsonPath.stringAt('$.asset_url')},
             {name: 'CRON_EXPRESSION', value: sfn.JsonPath.stringAt('$.cron_expression')},
+            {name: 'SIZE_IN_MB', value: sfn.JsonPath.stringAt('$.size_in_mb')},
             {name: 'EXEC_MODE', value: 'FARGATE'}
           ]
         }
@@ -65,7 +66,7 @@ export class DAPWorkflow extends Construct {
 
     })
 
-    const definition = fetchAsset
+    const definition = prepareFetch
       .next(new sfn.Choice(this, 'FetchFinished?')
         .when(sfn.Condition.booleanEquals('$.fetch_finished', false), runTask)
         .otherwise(new sfn.Pass(this, 'Pass'))

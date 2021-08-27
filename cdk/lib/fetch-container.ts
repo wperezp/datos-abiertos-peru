@@ -19,7 +19,6 @@ export class DAPFetchContainer extends Construct {
     scope: Construct,
     id: string,
     vpc: Vpc,
-    fnFetch: lambda.Function,
     sourceDataBucket: Bucket,
     hashesTable: Table
   ) {
@@ -31,8 +30,8 @@ export class DAPFetchContainer extends Construct {
     });
 
     this.taskDefinition = new FargateTaskDefinition(this, 'FargateTask', {
-      cpu: 512,
-      memoryLimitMiB: 4096
+      cpu: 1024,
+      memoryLimitMiB: 8192
     });
 
     hashesTable.grantReadWriteData(this.taskDefinition.taskRole);
@@ -52,43 +51,8 @@ export class DAPFetchContainer extends Construct {
       memoryLimitMiB: 4096
     });
 
-    const publicSubnet = vpc.publicSubnets[0].subnetId;
 
-    this.runTaskFn = new lambda.Function(this, "fnRunTask", {
-      handler: "run_task.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset("../src/run_task"),
-      environment: {
-        TASK_DEFINITION: this.taskDefinition.taskDefinitionArn,
-        CONTAINER_NAME: this.containerDefinition.containerName,
-        CLUSTER_NAME: this.cluster.clusterName,
-        SUBNET_ID: publicSubnet,
-      },
-      memorySize: 128,
-      timeout: Duration.seconds(10),
-    });
-
-    const grantEcsRunTask = new iam.PolicyStatement();
-    grantEcsRunTask.addActions("ecs:RunTask");
-    grantEcsRunTask.addResources(this.taskDefinition.taskDefinitionArn);
-
-    const taskGrantPass = new iam.PolicyStatement();
-    taskGrantPass.addActions("iam:PassRole");
-    taskGrantPass.addResources(
-      this.taskDefinition.taskRole.roleArn
-    );
-
-    const execGrantPass = new iam.PolicyStatement();
-    execGrantPass.addActions("iam:PassRole");
-    execGrantPass.addResources(
-      this.taskDefinition.executionRole!.roleArn
-    );
-
-    this.runTaskFn.addToRolePolicy(grantEcsRunTask);
-    this.runTaskFn.addToRolePolicy(taskGrantPass);
-    this.runTaskFn.addToRolePolicy(execGrantPass);
-
-    this.runTaskFn.grantInvoke(fnFetch);
-    fnFetch.addEnvironment("RUN_TASK_FUNCTION", this.runTaskFn.functionName);
+    // this.runTaskFn.grantInvoke(fnFetch);
+    // fnFetch.addEnvironment("RUN_TASK_FUNCTION", this.runTaskFn.functionName);
   }
 }
