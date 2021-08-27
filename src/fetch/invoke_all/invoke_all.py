@@ -10,8 +10,8 @@ def parse_catalog(filename: str):
     return yaml.safe_load(f_content)
 
 
-def invoke_for_all_assets(catalog: dict, function_name: str):
-    lambda_client = boto3.client('lambda')
+def invoke_for_all_assets(catalog: dict, stmxn_arn: str):
+    sfn_client = boto3.client('stepfunctions')
     for key, item in catalog.items():
         asset_name = item['Name']
         print(f"Invoke {asset_name}")
@@ -24,17 +24,16 @@ def invoke_for_all_assets(catalog: dict, function_name: str):
         }
         if item.get('CronExpression') is not None:
             payload['cron_expression'] = item['CronExpression']
-        lambda_client.invoke(
-            FunctionName=function_name,
-            InvocationType='Event',
-            Payload=json.dumps(payload).encode('utf-8')
+        sfn_client.start_execution(
+            stateMachineArn=stmxn_arn,
+            input=json.dumps(payload).encode('utf-8')
         )
 
 
 def lambda_handler(event, context):
     catalog_to_invoke = parse_catalog('catalog.yml')
-    function_name = os.environ['FETCH_FUNCTION_NAME']
-    invoke_for_all_assets(catalog_to_invoke, function_name)
+    stmxn_arn = os.environ['SFN_STMXN_ARN']
+    invoke_for_all_assets(catalog_to_invoke, stmxn_arn)
 
 
 if __name__ == '__main__':

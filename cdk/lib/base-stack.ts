@@ -62,19 +62,6 @@ export class DAPBaseStack extends Stack {
     // Container to execute when download time is longer than fnFetch timeout
     const fetchContainer = new DAPFetchContainer(this, 'fetchContainer', this.vpc, this.sourceDataBucket, this.hashesTable);
 
-    this.fnInvokeAll = new lambda.Function(this, "fnInvokeAll", {
-      handler: "invoke_all.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset("../src/fetch/invoke_all"),
-      environment: {
-        FETCH_FUNCTION_NAME: this.fnPrepareFetch.functionName,
-      },
-      memorySize: 200,
-      timeout: Duration.minutes(1)
-    });
-
-    this.fnPrepareFetch.grantInvoke(this.fnInvokeAll)
-
     const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-requests:20`;
     const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(
       this,
@@ -139,7 +126,20 @@ export class DAPBaseStack extends Stack {
     })
 
     // Workflow
-    new DAPWorkflow(this, 'SfnWorkflow', this.fnPrepareFetch, fetchContainer, this.fnStaging, this.provisioningJob, this.provisioningDataBucket);
+    const sfn_stmxn = new DAPWorkflow(this, 'SfnWorkflow', this.fnPrepareFetch, fetchContainer, this.fnStaging, this.provisioningJob, this.provisioningDataBucket);
+
+    this.fnInvokeAll = new lambda.Function(this, "fnInvokeAll", {
+      handler: "invoke_all.lambda_handler",
+      runtime: lambda.Runtime.PYTHON_3_8,
+      code: lambda.Code.fromAsset("../src/fetch/invoke_all"),
+      environment: {
+        SFN_STMXN_ARN: sfn_stmxn.workflowStateMachine.stateMachineArn,
+      },
+      memorySize: 200,
+      timeout: Duration.minutes(1)
+    });
+
+    this.fnPrepareFetch.grantInvoke(this.fnInvokeAll)
 
     // Outputs
     new CfnOutput(this, 'SourceBucket', {

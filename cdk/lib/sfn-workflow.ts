@@ -33,6 +33,7 @@ export class DAPWorkflow extends Construct {
       containerOverrides: [
         {
           containerDefinition: fetchContainer.containerDefinition,
+          memoryLimit: sfn.JsonPath.numberAt('$.fetch_container_memory'),
           environment: [
             {name: 'ASSET_NAME', value: sfn.JsonPath.stringAt('$.asset_name')},
             {name: 'ASSET_FILENAME', value: sfn.JsonPath.stringAt('$.asset_filename')},
