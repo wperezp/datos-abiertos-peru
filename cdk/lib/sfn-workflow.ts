@@ -70,6 +70,10 @@ export class DAPWorkflow extends Construct {
     const definition = prepareFetch
       .next(runTask)
       .next(stagingJob)
+      .next(new sfn.Choice(this, 'StagingStepWasFound?')
+        .when(sfn.Condition.booleanEquals('$.staging_done', true), new sfn.Pass(this, 'ContinueToProvisioningStep'))
+        .otherwise(new sfn.Succeed(this, 'NotYetImplemented'))
+      )
       .next(provisioningGlueJob);
     
     this.workflowStateMachine = new sfn.StateMachine(this, 'StateMachine', {

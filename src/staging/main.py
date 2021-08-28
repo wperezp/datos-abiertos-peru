@@ -32,11 +32,17 @@ def lambda_handler(event, context):
         asset_name = asset_dict['ASSET_NAME']
         asset_filename = asset_dict['ASSET_FILENAME']
     asset_obj = s3.get_object(Bucket=os.environ['S3_SOURCE_BUCKET'], Key=f'raw/{asset_filename}')
-    data_staging(asset_name, asset_obj)
-    output = {
-        "asset_name": asset_name,
-        "asset_etl_script": "s3://{0}/scripts/{1}.py".format(os.environ['S3_PROVISIONING_BUCKET'], asset_name)
-    }
+    try:
+        data_staging(asset_name, asset_obj)
+        output = {
+            "staging_done": True,
+            "asset_name": asset_name,
+            "asset_etl_script": "s3://{0}/scripts/{1}.py".format(os.environ['S3_PROVISIONING_BUCKET'], asset_name)
+        }
+    except ModuleNotFoundError:
+        output = {
+            "staging_done": False
+        }
     return output
 
 
