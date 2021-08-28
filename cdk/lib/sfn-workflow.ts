@@ -73,6 +73,7 @@ export class DAPWorkflow extends Construct {
       .next(new sfn.Choice(this, 'StagingStepWasFound?')
         .when(sfn.Condition.booleanEquals('$.staging_done', true), new sfn.Pass(this, 'ContinueToProvisioningStep'))
         .otherwise(new sfn.Succeed(this, 'NotYetImplemented'))
+        .afterwards()
       )
       .next(provisioningGlueJob);
     
