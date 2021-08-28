@@ -6,6 +6,8 @@ from awsglue.context import GlueContext
 from awsglue.dynamicframe import DynamicFrame
 from awsglue.utils import getResolvedOptions
 
+from pyspark.sql.functions import col, upper
+
 
 args = getResolvedOptions(sys.argv, ['provisioning_bucket', 'staging_db', 'provisioning_db'])
 sc = SparkContext()
@@ -26,24 +28,30 @@ dyf_staging = dyf_staging.applyMapping(mappings=[
     ('fecha_fallecimiento', 'string', 'fecha_fallecimiento', 'date'),
     ('edad_declarada', 'string', 'edad', 'short'),
     ('sexo', 'string', 'sexo', 'string'),
-    ('fecha_nac', 'string', 'fecha_nacimiento', 'date'),
-    ('ubigeo', 'string', 'ubigeo', 'short'),
+    ('clasificacion_def', 'string', 'clasificacion_def', 'string'),
+    ('ubigeo', 'string', 'ubigeo', 'string'),
     ('departamento', 'string', 'departamento', 'string'),
     ('provincia', 'string', 'provincia', 'string'),
     ('distrito', 'string', 'distrito', 'string')
 ])
 
-prv_tables = [x.name for x in spark.catalog.listTables(db_provisioning)]
+df_staging = dyf_staging.toDF()
+df_final = df_staging.withColumn('clasificacion_def_upp', upper(col('clasifacion_def'))) \
+                    .drop('clasificacion_def') \
+                    .withColumnRenamed('clasificacion_def_upp', 'clasificacion_def')
 
-if tbl_name not in prv_tables:
-    df_final = dyf_staging.toDF()
-else:
-    df_staging: DataFrame = dyf_staging.toDF()
-    dyf_prv = glueContext.create_dynamic_frame_from_catalog(database=db_provisioning, table_name=tbl_name)
-    df_prv = dyf_prv.toDF()
-    df_union = df_prv.unionAll(df_staging)
-    df_union_unique = df_union.dropDuplicates(subset=['uuid_fallecimiento'])
-    df_final = df_union_unique
+
+# prv_tables = [x.name for x in spark.catalog.listTables(db_provisioning)]
+
+# if tbl_name not in prv_tables:
+#     df_final = df_clasif_def
+# else:
+#     df_staging: DataFrame = df_clasif_def
+#     dyf_prv = glueContext.create_dynamic_frame_from_catalog(database=db_provisioning, table_name=tbl_name)
+#     df_prv = dyf_prv.toDF()
+#     df_union = df_prv.unionAll(df_staging)
+#     df_union_unique = df_union.dropDuplicates(subset=['uuid_fallecimiento'])
+#     df_final = df_union_unique
 
 df_final \
     .write.mode('overwrite').format('parquet').save(f"s3://{provisioning_bucket}/data/{tbl_name}/")
