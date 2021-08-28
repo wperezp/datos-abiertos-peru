@@ -57,9 +57,12 @@ def fetch_dataset(asset_name: str, asset_filename: str, asset_url: str, upload_o
     response = requests.get(asset_url)
     full_content = response.content
     if is_newer_version(asset_name, full_content):
+        print("Downloaded file is new. Uploading to S3")
         s3 = boto3.resource('s3')
         bucket = s3.Bucket(os.environ['S3_DATA_BUCKET'])
         bucket.put_object(Key=f'raw/{asset_filename}', Body=full_content)
+    else:
+        print("File already exists")
 
 
 def parse_catalog(filename: str):
