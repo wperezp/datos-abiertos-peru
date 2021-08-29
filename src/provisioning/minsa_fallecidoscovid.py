@@ -35,11 +35,13 @@ dyf_staging = dyf_staging.applyMapping(mappings=[
     ('distrito', 'string', 'distrito', 'string')
 ])
 
+
 df_staging = dyf_staging.toDF()
-df_final = df_staging.withColumn('clasificacion_def_upp', upper(col('clasifacion_def'))) \
+df_clasf_def = df_staging.withColumn('clasificacion_def_upp', upper(col('clasifacion_def'))) \
                     .drop('clasificacion_def') \
                     .withColumnRenamed('clasificacion_def_upp', 'clasificacion_def')
 
+df_final = df_clasf_def.dropDuplicates(subset=['uuid_fallecimiento'])
 
 # prv_tables = [x.name for x in spark.catalog.listTables(db_provisioning)]
 
