@@ -5,7 +5,7 @@ MinsaVacunacion:
   CronExpression: '00 05 * * ? *'
 MinsaFallecidosCovid:
   Name: minsa_fallecidoscovid
-  URI: https://cloud.minsa.gob.pe/s/Md37cjXmjT9qYSa/download
+  URI: https://cloud.minsa.gob.pe/s/xJ2LQ3QyRW38Pe5/download
   Filename: minsa_fallecidoscovid.csv
   CronExpression: '00 05 * * ? *'
 MinsaPositivosCovid:
@@ -18,3 +18,4 @@ SinadefFallecidos:
   URI: https://cloud.minsa.gob.pe/s/nqF2irNbFomCLaa/download
   Filename: sinadef_fallecidos.csv
   CronExpression: '00 05 * * ? *'
+

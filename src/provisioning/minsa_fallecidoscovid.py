@@ -15,8 +15,8 @@ glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 logger = glueContext.get_logger()
 
-db_staging = args['provisioning_db']
-db_provisioning = args['staging_db']
+db_staging = args['staging_db']
+db_provisioning = args['provisioning_db']
 provisioning_bucket = args['provisioning_bucket']
 tbl_name = 'minsa_fallecidoscovid'
 
@@ -37,7 +37,7 @@ dyf_staging = dyf_staging.applyMapping(mappings=[
 
 
 df_staging = dyf_staging.toDF()
-df_clasf_def = df_staging.withColumn('clasificacion_def_upp', upper(col('clasifacion_def'))) \
+df_clasf_def = df_staging.withColumn('clasificacion_def_upp', upper(col('clasificacion_def'))) \
                     .drop('clasificacion_def') \
                     .withColumnRenamed('clasificacion_def_upp', 'clasificacion_def')
 
