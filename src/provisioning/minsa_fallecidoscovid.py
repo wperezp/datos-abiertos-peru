@@ -24,7 +24,6 @@ tbl_name = 'minsa_fallecidoscovid'
 dyf_staging: DynamicFrame = glueContext.create_dynamic_frame.from_catalog(database=db_staging, table_name=tbl_name)
 
 dyf_staging = dyf_staging.applyMapping(mappings=[
-    ('uuid', 'string', 'uuid_fallecimiento', 'string'),
     ('fecha_fallecimiento', 'string', 'fecha_fallecimiento', 'date'),
     ('edad_declarada', 'string', 'edad', 'short'),
     ('sexo', 'string', 'sexo', 'string'),
