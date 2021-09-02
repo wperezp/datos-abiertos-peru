@@ -6,7 +6,7 @@ from awsglue.context import GlueContext
 from awsglue.dynamicframe import DynamicFrame, DynamicFrameWriter
 from awsglue.utils import getResolvedOptions
 
-from pyspark.sql.functions import col, upper
+from pyspark.sql.functions import when, col, upper
 
 args = getResolvedOptions(sys.argv, ['provisioning_bucket', 'staging_db', 'provisioning_db'])
 sc = SparkContext()
@@ -21,7 +21,7 @@ tbl_name = 'minsa_vacunacion'
 
 dyf_staging: DynamicFrame = glueContext.create_dynamic_frame.from_catalog(database=db_staging, table_name=tbl_name)
 
-dyf_final = dyf_staging.applyMapping(mappings=[
+dyf_typed = dyf_staging.applyMapping(mappings=[
     ('grupo_riesgo', 'string', 'grupo_riesgo', 'string'),
     ('edad', 'string', 'edad', 'short'),
     ('sexo', 'string', 'sexo', 'string'),
@@ -34,11 +34,16 @@ dyf_final = dyf_staging.applyMapping(mappings=[
     ('distrito', 'string', 'distrito', 'string')
 ])
 
-glueContext.write_dynamic_frame.from_options(
-    frame=dyf_final,
-    connection_type='s3',
-    connection_options={
-        "path": f"s3://{provisioning_bucket}/data/{tbl_name}/"
-    },
-    format='glueparquet'
-)
+df = dyf_typed.toDF()
+
+df_notnull = df \
+            .withColumn('grupo_riesgo_nn', when(col('grupo_riesgo') == '', None).otherwise(col('grupo_riesgo'))) \
+            .withColumn('fabricante_nn', when(col('fabricante') == '', None).otherwise(col('fabricante')))
+
+df_final = df_notnull \
+            .drop('grupo_riesgo', 'fabricante') \
+            .withColumnRenamed('grupo_riesgo_nn', 'grupo_riesgo') \
+            .withColumnRenamed('fabricante_nn', 'fabricante')
+
+df_final \
+    .write.mode('overwrite').format('parquet').save(f"s3://{provisioning_bucket}/data/{tbl_name}/")

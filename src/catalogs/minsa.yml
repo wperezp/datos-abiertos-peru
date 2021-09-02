@@ -10,7 +10,7 @@ MinsaFallecidosCovid:
   CronExpression: '00 05 * * ? *'
 MinsaPositivosCovid:
   Name: minsa_positivoscovid
-  URI: https://cloud.minsa.gob.pe/s/Y8w3wHsEdYQSZRp/download
+  URI: https://cloud.minsa.gob.pe/s/AC2adyLkHCKjmfm/download
   Filename: minsa_positivoscovid.csv
   CronExpression: '00 05 * * ? *'
 SinadefFallecidos:
