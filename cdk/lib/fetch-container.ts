@@ -47,12 +47,9 @@ export class DAPFetchContainer extends Construct {
         DDB_HASHES_TABLE: hashesTable.tableName,
         EXEC_MODE: "FARGATE",
       },
-      cpu: 512,
+      cpu: 1024,
       memoryLimitMiB: 4096
     });
 
-
-    // this.runTaskFn.grantInvoke(fnFetch);
-    // fnFetch.addEnvironment("RUN_TASK_FUNCTION", this.runTaskFn.functionName);
   }
 }

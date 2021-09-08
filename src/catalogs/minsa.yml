@@ -18,4 +18,3 @@ SinadefFallecidos:
   URI: https://cloud.minsa.gob.pe/s/nqF2irNbFomCLaa/download
   Filename: sinadef_fallecidos.csv
   CronExpression: '00 05 * * ? *'
-

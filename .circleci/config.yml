@@ -54,10 +54,15 @@ jobs:
       - attach_workspace:
           at: .
       - run:
+          name: Upload Python Shell files
+          command: |
+            bucket=$(cat cdk/outputs.json | jq -r .DAPBaseStack.SourceBucket)
+            aws s3 sync src/staging/. s3://${bucket}/scripts/staging/
+      - run:
           name: Upload PySpark files
           command: |
             bucket=$(cat cdk/outputs.json | jq -r .DAPBaseStack.ProvisioningBucket)
-            aws s3 sync src/provisioning/. s3://${bucket}/scripts/
+            aws s3 sync src/provisioning/. s3://${bucket}/scripts/provisioning/
 workflows:
   main:
     jobs:

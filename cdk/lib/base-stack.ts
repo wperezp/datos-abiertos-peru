@@ -4,10 +4,15 @@ import * as ec2 from "@aws-cdk/aws-ec2";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as glue from "@aws-cdk/aws-glue";
 import * as iam from "@aws-cdk/aws-iam";
+import * as targets from '@aws-cdk/aws-events-targets';
+import * as yaml from 'js-yaml';
+import * as fs from 'fs';
 import { CfnOutput, Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
 import { DAPFetchContainer } from "./fetch-container";
 import { DAPWorkflow } from "./sfn-workflow";
-import { AnyPrincipal, ServicePrincipal } from "@aws-cdk/aws-iam";
+import { ServicePrincipal } from "@aws-cdk/aws-iam";
+import { Rule, RuleTargetInput, Schedule } from '@aws-cdk/aws-events';
+import SourceDescription from '../utils/source-descriptor';
 
 export class DAPBaseStack extends Stack {
   
@@ -18,8 +23,6 @@ export class DAPBaseStack extends Stack {
   readonly fnPrepareFetch: lambda.Function;
   readonly fnRunFetchTask: lambda.Function;
   readonly fnInvokeAll: lambda.Function;
-  readonly fnStaging: lambda.Function;
-  readonly provisioningJob: glue.CfnJob;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -78,17 +81,22 @@ export class DAPBaseStack extends Stack {
     this.fnPrepareFetch.addLayers(requestsLayer);
 
     // Staging function
-    this.fnStaging = new lambda.DockerImageFunction(this, "fnCleaning",{
-      code: lambda.DockerImageCode.fromImageAsset('../src/staging/'),
-      timeout: Duration.minutes(15),
-      environment: {
-        S3_SOURCE_BUCKET: this.sourceDataBucket.bucketName,
-        S3_PROVISIONING_BUCKET: this.provisioningDataBucket.bucketName
-      },
-      memorySize: 4096
+    // this.fnStaging = new lambda.DockerImageFunction(this, "fnCleaning",{
+    //   code: lambda.DockerImageCode.fromImageAsset('../src/staging/'),
+    //   timeout: Duration.minutes(15),
+    //   environment: {
+    //     S3_SOURCE_BUCKET: this.sourceDataBucket.bucketName,
+    //     S3_PROVISIONING_BUCKET: this.provisioningDataBucket.bucketName
+    //   },
+    //   memorySize: 4096
+    // });
+
+    const stagingGlueRole = new iam.Role(this, 'stgRole', {
+      assumedBy: new ServicePrincipal('glue.amazonaws.com')
     });
-    
-    this.sourceDataBucket.grantReadWrite(this.fnStaging);
+
+    this.sourceDataBucket.grantReadWrite(stagingGlueRole);
+    stagingGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'));
 
     const provisioningGlueRole = new iam.Role(this, 'prvRole', {
       assumedBy: new ServicePrincipal('glue.amazonaws.com')
@@ -96,51 +104,131 @@ export class DAPBaseStack extends Stack {
 
     this.sourceDataBucket.grantReadWrite(provisioningGlueRole);
     this.provisioningDataBucket.grantReadWrite(provisioningGlueRole);
-    provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'))
+    provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'));
 
-    this.provisioningJob = new glue.CfnJob(this, 'prvJob', {
-      command: {
-        name: 'glueetl',
-        pythonVersion: '3',
-        scriptLocation: `s3://${this.provisioningDataBucket.bucketName}/scripts/default.py`
-      },
-      role: provisioningGlueRole.roleArn,
-      glueVersion: '2.0',
-      executionProperty: {
-        maxConcurrentRuns: 50.0,
-      },
-      maxCapacity: 2,
-      name: 'DAPProvisioningJob',
-      defaultArguments: {
-        "--TempDir": `s3://${this.provisioningDataBucket.bucketName}/temp/`,
-        "--enable-s3-parquet-optimized-committer": true,
-        "--enable-glue-datacatalog": true,
-        "--enable-rename-algorithm-v2": true,
-        "--enable-continuous-cloudwatch-log": true,
-        "--enable-spark-ui": true,
-        "--provisioning_bucket": this.provisioningDataBucket.bucketName,
-        "--staging_db": "dap-staging-data",
-        "--provisioning_db": "dap-provisioning-data"
-      }
-    })
 
-    // Workflow
-    const sfn_stmxn = new DAPWorkflow(this, 'SfnWorkflow', this.fnPrepareFetch, fetchContainer, this.fnStaging, this.provisioningJob, this.provisioningDataBucket);
-
-    this.fnInvokeAll = new lambda.Function(this, "fnInvokeAll", {
-      handler: "invoke_all.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset("../src/fetch/invoke_all"),
-      environment: {
-        SFN_STMXN_ARN: sfn_stmxn.workflowStateMachine.stateMachineArn,
-      },
-      memorySize: 200,
-      timeout: Duration.minutes(1)
+    let availableStagingScripts: string[] = [];
+    fs.readdirSync('../src/staging/').forEach(file => {
+      let filenameSplit = file.split('.py')
+      availableStagingScripts.push(filenameSplit[0])
     });
+    console.log(availableStagingScripts);
 
-    this.fnInvokeAll.addLayers(yamlLayer);
-    this.fnPrepareFetch.grantInvoke(this.fnInvokeAll)
-    sfn_stmxn.workflowStateMachine.grantStartExecution(this.fnInvokeAll);
+    let availableProvisioningScripts: string[] = []
+    fs.readdirSync('../src/provisioning/').forEach(file => {
+      let filenameSplit = file.split('.py')
+      availableProvisioningScripts.push(filenameSplit[0])
+    })
+    console.log(availableProvisioningScripts);
+
+    let fileContents = fs.readFileSync('../src/fetch/fetch/catalog.yml', 'utf-8');
+    let sourcesCatalog = yaml.load(fileContents) as SourceDescription;
+
+
+    for (let [_, item] of Object.entries(sourcesCatalog)) {
+      let itemDescription = item as SourceDescription;
+      let assetName = itemDescription.Name;
+      let assetFilename = itemDescription.Filename;
+
+      let stagingJob = undefined;
+      let provisioningJob = undefined;
+
+      if (availableStagingScripts.includes(assetFilename)) {
+        stagingJob = new glue.CfnJob(this, `${assetName}StgJob`, {
+          command: {
+            name: 'pythonshell',
+            pythonVersion: '3',
+            scriptLocation: `s3://${this.sourceDataBucket.bucketName}/scripts/${assetFilename}.py`
+          },
+          role: stagingGlueRole.roleArn,
+          glueVersion: '2.0',
+          maxCapacity: 1,
+          name: `DAPStg${assetName}`,
+          defaultArguments: {
+            "--source_bucket": this.sourceDataBucket.bucketName,
+          }
+        });
+      }
+      
+      if (availableProvisioningScripts.includes(assetFilename)) {
+        provisioningJob = new glue.CfnJob(this, `${assetName}PrvJob`, {
+          command: {
+            name: 'glueetl',
+            pythonVersion: '3',
+            scriptLocation: `s3://${this.provisioningDataBucket.bucketName}/scripts/${assetFilename}.py`
+          },
+          role: provisioningGlueRole.roleArn,
+          glueVersion: '2.0',
+          maxCapacity: 2,
+          name: `DAPPrv${assetName}`,
+          defaultArguments: {
+            "--TempDir": `s3://${this.provisioningDataBucket.bucketName}/temp/`,
+            "--enable-s3-parquet-optimized-committer": true,
+            "--enable-glue-datacatalog": true,
+            "--enable-rename-algorithm-v2": true,
+            "--enable-continuous-cloudwatch-log": true,
+            "--enable-spark-ui": true,
+            "--provisioning_bucket": this.provisioningDataBucket.bucketName,
+            "--staging_db": "dap-staging-data",
+            "--provisioning_db": "dap-provisioning-data"
+          }
+        });
+      }
+
+      let sfnWorkflow = new DAPWorkflow(this, `DAP_Sfn${assetName}`, itemDescription, this.fnPrepareFetch, fetchContainer, stagingJob, provisioningJob)
+
+      if (itemDescription.hasOwnProperty('CronExpression')) {
+        let eventTarget = new targets.SfnStateMachine(sfnWorkflow.workflowStateMachine, {})
+  
+        new Rule(this, `trigger_${itemDescription.Name}`, {
+          schedule: Schedule.expression(`cron(${itemDescription.CronExpression})`),
+          targets: [eventTarget]
+        });
+      }
+    }
+    
+    // this.sourceDataBucket.grantReadWrite(this.fnStaging);
+
+    // this.provisioningJob = new glue.CfnJob(this, 'prvJob', {
+    //   command: {
+    //     name: 'glueetl',
+    //     pythonVersion: '3',
+    //     scriptLocation: `s3://${this.provisioningDataBucket.bucketName}/scripts/default.py`
+    //   },
+    //   role: provisioningGlueRole.roleArn,
+    //   glueVersion: '2.0',
+    //   executionProperty: {
+    //     maxConcurrentRuns: 50.0,
+    //   },
+    //   maxCapacity: 2,
+    //   name: 'DAPProvisioningJob',
+    //   defaultArguments: {
+    //     "--TempDir": `s3://${this.provisioningDataBucket.bucketName}/temp/`,
+    //     "--enable-s3-parquet-optimized-committer": true,
+    //     "--enable-glue-datacatalog": true,
+    //     "--enable-rename-algorithm-v2": true,
+    //     "--enable-continuous-cloudwatch-log": true,
+    //     "--enable-spark-ui": true,
+    //     "--provisioning_bucket": this.provisioningDataBucket.bucketName,
+    //     "--staging_db": "dap-staging-data",
+    //     "--provisioning_db": "dap-provisioning-data"
+    //   }
+    // })
+
+    // this.fnInvokeAll = new lambda.Function(this, "fnInvokeAll", {
+    //   handler: "invoke_all.lambda_handler",
+    //   runtime: lambda.Runtime.PYTHON_3_8,
+    //   code: lambda.Code.fromAsset("../src/fetch/invoke_all"),
+    //   environment: {
+    //     SFN_STMXN_ARN: sfn_stmxn.workflowStateMachine.stateMachineArn,
+    //   },
+    //   memorySize: 200,
+    //   timeout: Duration.minutes(1)
+    // });
+
+    // this.fnInvokeAll.addLayers(yamlLayer);
+    // this.fnPrepareFetch.grantInvoke(this.fnInvokeAll)
+    // sfn_stmxn.workflowStateMachine.grantStartExecution(this.fnInvokeAll);
 
     // Outputs
     new CfnOutput(this, 'SourceBucket', {
@@ -151,4 +239,5 @@ export class DAPBaseStack extends Stack {
     });
     
   }
+
 }
