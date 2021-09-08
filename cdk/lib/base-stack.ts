@@ -125,7 +125,7 @@ export class DAPBaseStack extends Stack {
     let sourcesCatalog = yaml.load(fileContents) as SourceDescription;
 
 
-    for (let [_, item] of Object.entries(sourcesCatalog)) {
+    for (let [assetKey, item] of Object.entries(sourcesCatalog)) {
       let itemDescription = item as SourceDescription;
       let assetName = itemDescription.Name;
       let assetFilename = itemDescription.Filename;
@@ -134,7 +134,7 @@ export class DAPBaseStack extends Stack {
       let provisioningJob = undefined;
 
       if (availableStagingScripts.includes(assetFilename)) {
-        stagingJob = new glue.CfnJob(this, `${assetName}StgJob`, {
+        stagingJob = new glue.CfnJob(this, `${assetKey}StgJob`, {
           command: {
             name: 'pythonshell',
             pythonVersion: '3',
@@ -143,7 +143,7 @@ export class DAPBaseStack extends Stack {
           role: stagingGlueRole.roleArn,
           glueVersion: '2.0',
           maxCapacity: 1,
-          name: `DAPStg${assetName}`,
+          name: `DAPStg${assetKey}`,
           defaultArguments: {
             "--source_bucket": this.sourceDataBucket.bucketName,
           }
@@ -151,7 +151,7 @@ export class DAPBaseStack extends Stack {
       }
       
       if (availableProvisioningScripts.includes(assetFilename)) {
-        provisioningJob = new glue.CfnJob(this, `${assetName}PrvJob`, {
+        provisioningJob = new glue.CfnJob(this, `${assetKey}PrvJob`, {
           command: {
             name: 'glueetl',
             pythonVersion: '3',
@@ -160,7 +160,7 @@ export class DAPBaseStack extends Stack {
           role: provisioningGlueRole.roleArn,
           glueVersion: '2.0',
           maxCapacity: 2,
-          name: `DAPPrv${assetName}`,
+          name: `DAPPrv${assetKey}`,
           defaultArguments: {
             "--TempDir": `s3://${this.provisioningDataBucket.bucketName}/temp/`,
             "--enable-s3-parquet-optimized-committer": true,
@@ -175,7 +175,7 @@ export class DAPBaseStack extends Stack {
         });
       }
 
-      let sfnWorkflow = new DAPWorkflow(this, `DAP_Sfn${assetName}`, itemDescription, this.fnPrepareFetch, fetchContainer, stagingJob, provisioningJob)
+      let sfnWorkflow = new DAPWorkflow(this, `DAP_Sfn${assetKey}`, itemDescription, this.fnPrepareFetch, fetchContainer, stagingJob, provisioningJob)
 
       if (itemDescription.hasOwnProperty('CronExpression')) {
         let eventTarget = new targets.SfnStateMachine(sfnWorkflow.workflowStateMachine, {})
