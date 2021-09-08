@@ -59,10 +59,7 @@ jobs:
             bucket=$(cat cdk/outputs.json | jq -r .DAPBaseStack.ProvisioningBucket)
             aws s3 sync src/provisioning/. s3://${bucket}/scripts/
 workflows:
-  development:
-    unless:
-      and:
-      - equal: [main, <<pipeline.git.branch>>]
+  main:
     jobs:
       - build
       - deploy:
@@ -72,16 +69,3 @@ workflows:
       - upload_files:
             requires:
               - deploy
-  production:
-    when:
-      and:
-      - equal: [main, <<pipeline.git.branch>>]
-    jobs:
-      - build
-      - deploy:
-          region: us-east-2
-          requires:
-            - build
-      - upload_files:
-          requires:
-            - deploy
