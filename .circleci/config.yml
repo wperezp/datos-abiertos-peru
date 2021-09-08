@@ -1,6 +1,5 @@
 version: 2.1
 orbs:
-  aws-cli: circleci/aws-cli@1.3.2
   node: circleci/node@4.3.0
 jobs:
   build:
@@ -36,14 +35,29 @@ jobs:
       - run:
           name: Compile catalogs
           command: |
-            cat catalogs/*.yml > fetch/catalog.yml
-            cat catalogs/*.yml > invoke/catalog.yml
+            cat catalogs/*.yml > fetch/fetch/catalog.yml
+            cat catalogs/*.yml > fetch/invoke_all/catalog.yml
           working_directory: src
       - run: 
           name: CDK deploy
           command: npm run deploy
           working_directory: cdk
-
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cdk/outputs.json
+  upload_files:
+    docker: 
+      - image: amazon/aws-cli:latest
+    steps:
+      - run: yum install tar gzip jq -y
+      - attach_workspace:
+          at: .
+      - run:
+          name: Upload PySpark files
+          command: |
+            bucket=$(cat cdk/outputs.json | jq -r .DAPBaseStack.ProvisioningBucket)
+            aws s3 sync src/provisioning/. s3://${bucket}/scripts/
 workflows:
   development:
     unless:
@@ -55,6 +69,9 @@ workflows:
           region: us-east-1
           requires:
             - build
+      - upload_files:
+            requires:
+              - deploy
   production:
     when:
       and:
@@ -65,3 +82,6 @@ workflows:
           region: us-east-2
           requires:
             - build
+      - upload_files:
+          requires:
+            - deploy

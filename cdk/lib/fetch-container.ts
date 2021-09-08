@@ -19,7 +19,6 @@ export class DAPFetchContainer extends Construct {
     scope: Construct,
     id: string,
     vpc: Vpc,
-    fnFetch: lambda.Function,
     sourceDataBucket: Bucket,
     hashesTable: Table
   ) {
@@ -31,15 +30,15 @@ export class DAPFetchContainer extends Construct {
     });
 
     this.taskDefinition = new FargateTaskDefinition(this, 'FargateTask', {
-      cpu: 512,
-      memoryLimitMiB: 4096
+      cpu: 1024,
+      memoryLimitMiB: 8192
     });
 
     hashesTable.grantReadWriteData(this.taskDefinition.taskRole);
     sourceDataBucket.grantWrite(this.taskDefinition.taskRole);
 
     this.containerDefinition = this.taskDefinition.addContainer('Container', {
-      image: ContainerImage.fromAsset('../src/fetch/'),
+      image: ContainerImage.fromAsset('../src/fetch/fetch/'),
       logging: LogDriver.awsLogs({
         streamPrefix: 'Container'
       }),
@@ -52,43 +51,8 @@ export class DAPFetchContainer extends Construct {
       memoryLimitMiB: 4096
     });
 
-    const publicSubnet = vpc.publicSubnets[0].subnetId;
 
-    this.runTaskFn = new lambda.Function(this, "fnRunTask", {
-      handler: "run_task.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset("../src/run_task"),
-      environment: {
-        TASK_DEFINITION: this.taskDefinition.taskDefinitionArn,
-        CONTAINER_NAME: this.containerDefinition.containerName,
-        CLUSTER_NAME: this.cluster.clusterName,
-        SUBNET_ID: publicSubnet,
-      },
-      memorySize: 128,
-      timeout: Duration.seconds(10),
-    });
-
-    const grantEcsRunTask = new iam.PolicyStatement();
-    grantEcsRunTask.addActions("ecs:RunTask");
-    grantEcsRunTask.addResources(this.taskDefinition.taskDefinitionArn);
-
-    const taskGrantPassRole = new iam.PolicyStatement();
-    taskGrantPassRole.addActions("iam:PassRole");
-    taskGrantPassRole.addResources(
-      this.taskDefinition.taskRole.roleArn
-    );
-
-    const execGrantPassRole = new iam.PolicyStatement();
-    execGrantPassRole.addActions("iam:PassRole");
-    execGrantPassRole.addResources(
-      this.taskDefinition.executionRole!.roleArn
-    );
-
-    this.runTaskFn.addToRolePolicy(grantEcsRunTask);
-    this.runTaskFn.addToRolePolicy(taskGrantPassRole);
-    this.runTaskFn.addToRolePolicy(execGrantPassRole);
-
-    this.runTaskFn.grantInvoke(fnFetch);
-    fnFetch.addEnvironment("RUN_TASK_FUNCTION", this.runTaskFn.functionName);
+    // this.runTaskFn.grantInvoke(fnFetch);
+    // fnFetch.addEnvironment("RUN_TASK_FUNCTION", this.runTaskFn.functionName);
   }
 }

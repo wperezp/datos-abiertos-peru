@@ -12,8 +12,10 @@ def data_staging(asset_name, data):
     tzinfo = timezone(timedelta(hours=tz_offset))
     now = datetime.now(tzinfo)
     bucket = os.environ['S3_SOURCE_BUCKET']
-    s3_key = "s3://{0}/staging/{1}/{2}.csv".format(bucket, asset_name, now.strftime('%Y%m%d%H%M%S'))
+    s3_key = "s3://{0}/staging/{1}/{1}.csv".format(bucket, asset_name)
     cleaned_data.to_csv(s3_key, sep=';', index=False)
+    s3_archive_key = "s3://{0}/archive/{1}/{2}.csv".format(bucket, asset_name, now.strftime('%Y%m%d%H%M%S'))
+    cleaned_data.to_csv(s3_archive_key, sep=';', index=False)
 
 
 def lambda_handler(event, context):
@@ -30,6 +32,17 @@ def lambda_handler(event, context):
         asset_name = asset_dict['ASSET_NAME']
         asset_filename = asset_dict['ASSET_FILENAME']
     asset_obj = s3.get_object(Bucket=os.environ['S3_SOURCE_BUCKET'], Key=f'raw/{asset_filename}')
-    data_staging(asset_name, asset_obj)
+    try:
+        data_staging(asset_name, asset_obj)
+        output = {
+            "staging_done": True,
+            "asset_name": asset_name,
+            "asset_etl_script": "s3://{0}/scripts/{1}.py".format(os.environ['S3_PROVISIONING_BUCKET'], asset_name)
+        }
+    except ModuleNotFoundError:
+        output = {
+            "staging_done": False
+        }
+    return output
 
 

@@ -7,6 +7,9 @@ node_modules
 .cdk.staging
 cdk.out
 
+# Outputs
+cdk/outputs.json
+
 # VS Code
 .vscode/*
 
@@ -17,5 +20,4 @@ cdk.out
 .idea/*
 
 # app
-src/fetch/*.yml
-src/invoke/*.yml
+src/fetch/invoke_all/*.yml

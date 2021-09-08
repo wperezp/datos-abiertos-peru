@@ -3,10 +3,11 @@ import * as s3 from "@aws-cdk/aws-s3";
 import * as ec2 from "@aws-cdk/aws-ec2";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as glue from "@aws-cdk/aws-glue";
-import { Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
-import { LambdaDestination } from "@aws-cdk/aws-s3-notifications";
+import * as iam from "@aws-cdk/aws-iam";
+import { CfnOutput, Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
 import { DAPFetchContainer } from "./fetch-container";
 import { DAPWorkflow } from "./sfn-workflow";
+import { AnyPrincipal, ServicePrincipal } from "@aws-cdk/aws-iam";
 
 export class DAPBaseStack extends Stack {
   
@@ -14,9 +15,11 @@ export class DAPBaseStack extends Stack {
   readonly sourceDataBucket: s3.Bucket;
   readonly provisioningDataBucket: s3.Bucket;
   readonly hashesTable: dynamodb.Table;
-  readonly fnFetch: lambda.Function;
-  readonly fnInvokeFetch: lambda.Function;
+  readonly fnPrepareFetch: lambda.Function;
+  readonly fnRunFetchTask: lambda.Function;
+  readonly fnInvokeAll: lambda.Function;
   readonly fnStaging: lambda.Function;
+  readonly provisioningJob: glue.CfnJob;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -48,36 +51,18 @@ export class DAPBaseStack extends Stack {
       ],
     });
 
-
-    // Fetch function
-    this.fnFetch = new lambda.Function(this, "fnFetch", {
-      handler: "fetch.lambda_handler",
+    this.fnPrepareFetch = new lambda.Function(this, "fnPrepareFetch", {
+      handler: "prepare_fetch.lambda_handler",
       runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset("../src/fetch/"),
-      memorySize: 1500,
-      timeout: Duration.minutes(15),
-      environment: {
-        DDB_HASHES_TABLE: this.hashesTable.tableName,
-        S3_DATA_BUCKET: this.sourceDataBucket.bucketName,
-      },
-      retryAttempts: 1,
-    });
-
-    this.fnInvokeFetch = new lambda.Function(this, "fnInvokeFetch", {
-      handler: "invoke.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset("../src/invoke"),
-      environment: {
-        FETCH_FUNCTION_NAME: this.fnFetch.functionName,
-      },
+      code: lambda.Code.fromAsset("../src/fetch/prepare"),
       memorySize: 200,
-      timeout: Duration.minutes(1),
-    });
+      timeout: Duration.minutes(1)
+    })
 
-    this.hashesTable.grantReadWriteData(this.fnFetch);
-    this.sourceDataBucket.grantWrite(this.fnFetch);
+    // Container to execute when download time is longer than fnFetch timeout
+    const fetchContainer = new DAPFetchContainer(this, 'fetchContainer', this.vpc, this.sourceDataBucket, this.hashesTable);
 
-    const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-requests-html:37`;
+    const requestsLayerArn = `arn:aws:lambda:${process.env.AWS_DEFAULT_REGION}:770693421928:layer:Klayers-python38-requests:20`;
     const requestsLayer = lambda.LayerVersion.fromLayerVersionArn(
       this,
       "fnLayerRequests",
@@ -90,28 +75,80 @@ export class DAPBaseStack extends Stack {
       yamlLayerArn
     );
 
-    this.fnFetch.addLayers(requestsLayer, yamlLayer);
-    this.fnInvokeFetch.addLayers(yamlLayer);
-
-    this.fnFetch.grantInvoke(this.fnInvokeFetch);
-
-    // Container to execute when download time is longer than fnFetch timeout
-    const fetchContainer = new DAPFetchContainer(this, 'fetchContainer', this.vpc, this.fnFetch, this.sourceDataBucket, this.hashesTable);
+    this.fnPrepareFetch.addLayers(requestsLayer);
 
     // Staging function
     this.fnStaging = new lambda.DockerImageFunction(this, "fnCleaning",{
       code: lambda.DockerImageCode.fromImageAsset('../src/staging/'),
       timeout: Duration.minutes(15),
       environment: {
-        S3_SOURCE_BUCKET: this.sourceDataBucket.bucketName
+        S3_SOURCE_BUCKET: this.sourceDataBucket.bucketName,
+        S3_PROVISIONING_BUCKET: this.provisioningDataBucket.bucketName
       },
       memorySize: 4096
     });
     
     this.sourceDataBucket.grantReadWrite(this.fnStaging);
 
+    const provisioningGlueRole = new iam.Role(this, 'prvRole', {
+      assumedBy: new ServicePrincipal('glue.amazonaws.com')
+    })
+
+    this.sourceDataBucket.grantReadWrite(provisioningGlueRole);
+    this.provisioningDataBucket.grantReadWrite(provisioningGlueRole);
+    provisioningGlueRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'))
+
+    this.provisioningJob = new glue.CfnJob(this, 'prvJob', {
+      command: {
+        name: 'glueetl',
+        pythonVersion: '3',
+        scriptLocation: `s3://${this.provisioningDataBucket.bucketName}/scripts/default.py`
+      },
+      role: provisioningGlueRole.roleArn,
+      glueVersion: '2.0',
+      executionProperty: {
+        maxConcurrentRuns: 50.0,
+      },
+      maxCapacity: 2,
+      name: 'DAPProvisioningJob',
+      defaultArguments: {
+        "--TempDir": `s3://${this.provisioningDataBucket.bucketName}/temp/`,
+        "--enable-s3-parquet-optimized-committer": true,
+        "--enable-glue-datacatalog": true,
+        "--enable-rename-algorithm-v2": true,
+        "--enable-continuous-cloudwatch-log": true,
+        "--enable-spark-ui": true,
+        "--provisioning_bucket": this.provisioningDataBucket.bucketName,
+        "--staging_db": "dap-staging-data",
+        "--provisioning_db": "dap-provisioning-data"
+      }
+    })
+
     // Workflow
-    new DAPWorkflow(this, 'SfnWorkflow', this.fnFetch, fetchContainer, this.fnStaging);
+    const sfn_stmxn = new DAPWorkflow(this, 'SfnWorkflow', this.fnPrepareFetch, fetchContainer, this.fnStaging, this.provisioningJob, this.provisioningDataBucket);
+
+    this.fnInvokeAll = new lambda.Function(this, "fnInvokeAll", {
+      handler: "invoke_all.lambda_handler",
+      runtime: lambda.Runtime.PYTHON_3_8,
+      code: lambda.Code.fromAsset("../src/fetch/invoke_all"),
+      environment: {
+        SFN_STMXN_ARN: sfn_stmxn.workflowStateMachine.stateMachineArn,
+      },
+      memorySize: 200,
+      timeout: Duration.minutes(1)
+    });
+
+    this.fnInvokeAll.addLayers(yamlLayer);
+    this.fnPrepareFetch.grantInvoke(this.fnInvokeAll)
+    sfn_stmxn.workflowStateMachine.grantStartExecution(this.fnInvokeAll);
+
+    // Outputs
+    new CfnOutput(this, 'SourceBucket', {
+      value: this.sourceDataBucket.bucketName
+    });
+    new CfnOutput(this, 'ProvisioningBucket', {
+      value: this.provisioningDataBucket.bucketName
+    });
     
   }
 }

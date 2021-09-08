@@ -1,16 +1,16 @@
 MinsaVacunacion:
   Name: minsa_vacunacion
-  URI: https://cloud.minsa.gob.pe/s/ZgXoXqK2KLjRLxD/download
-  Filename: minsa_vacunacion.csv
+  URI: https://cloud.minsa.gob.pe/s/To2QtqoNjKqobfw/download
+  Filename: minsa_vacunacion.7z
   CronExpression: '00 05 * * ? *'
 MinsaFallecidosCovid:
   Name: minsa_fallecidoscovid
-  URI: https://cloud.minsa.gob.pe/s/Md37cjXmjT9qYSa/download
+  URI: https://cloud.minsa.gob.pe/s/xJ2LQ3QyRW38Pe5/download
   Filename: minsa_fallecidoscovid.csv
   CronExpression: '00 05 * * ? *'
 MinsaPositivosCovid:
   Name: minsa_positivoscovid
-  URI: https://cloud.minsa.gob.pe/s/Y8w3wHsEdYQSZRp/download
+  URI: https://cloud.minsa.gob.pe/s/AC2adyLkHCKjmfm/download
   Filename: minsa_positivoscovid.csv
   CronExpression: '00 05 * * ? *'
 SinadefFallecidos:
@@ -18,3 +18,4 @@ SinadefFallecidos:
   URI: https://cloud.minsa.gob.pe/s/nqF2irNbFomCLaa/download
   Filename: sinadef_fallecidos.csv
   CronExpression: '00 05 * * ? *'
+
