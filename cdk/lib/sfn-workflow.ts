@@ -57,20 +57,20 @@ export class DAPWorkflow extends Construct {
       ]
     })
 
-    const definition = prepareFetch.next(runTask)
+    let definition = prepareFetch.next(runTask)
 
     if (stagingJob !== undefined) {
       const stagingJobTask = new tasks.GlueStartJobRun(this, 'Staging', {
         glueJobName: stagingJob!.name!
       })
-      definition.next(stagingJobTask)
+      definition = definition.next(stagingJobTask)
     }
 
     if (provisioningJob !== undefined) {
       const provisioningJobTask = new tasks.GlueStartJobRun(this, 'Provisioning', {
         glueJobName: provisioningJob!.name!
       })
-      definition.next(provisioningJobTask)
+      definition = definition.next(provisioningJobTask)
     }
     
     this.workflowStateMachine = new sfn.StateMachine(this, 'SM', {
