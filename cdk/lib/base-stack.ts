@@ -133,12 +133,12 @@ export class DAPBaseStack extends Stack {
       let stagingJob = undefined;
       let provisioningJob = undefined;
 
-      if (availableStagingScripts.includes(assetFilename)) {
+      if (availableStagingScripts.includes(assetName)) {
         stagingJob = new glue.CfnJob(this, `${assetKey}StgJob`, {
           command: {
             name: 'pythonshell',
             pythonVersion: '3',
-            scriptLocation: `s3://${this.sourceDataBucket.bucketName}/scripts/${assetFilename}.py`
+            scriptLocation: `s3://${this.sourceDataBucket.bucketName}/scripts/${assetName}.py`
           },
           role: stagingGlueRole.roleArn,
           glueVersion: '2.0',
@@ -150,12 +150,12 @@ export class DAPBaseStack extends Stack {
         });
       }
       
-      if (availableProvisioningScripts.includes(assetFilename)) {
+      if (availableProvisioningScripts.includes(assetName)) {
         provisioningJob = new glue.CfnJob(this, `${assetKey}PrvJob`, {
           command: {
             name: 'glueetl',
             pythonVersion: '3',
-            scriptLocation: `s3://${this.provisioningDataBucket.bucketName}/scripts/${assetFilename}.py`
+            scriptLocation: `s3://${this.provisioningDataBucket.bucketName}/scripts/${assetName}.py`
           },
           role: provisioningGlueRole.roleArn,
           glueVersion: '2.0',
