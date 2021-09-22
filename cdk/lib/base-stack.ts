@@ -141,7 +141,6 @@ export class DAPBaseStack extends Stack {
             scriptLocation: `s3://${this.sourceDataBucket.bucketName}/scripts/${assetName}.py`
           },
           role: stagingGlueRole.roleArn,
-          glueVersion: '2.0',
           maxCapacity: 1,
           name: `DAPStg${assetKey}`,
           defaultArguments: {
