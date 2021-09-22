@@ -114,6 +114,11 @@ export class DAPBaseStack extends Stack {
     });
     console.log(availableStagingScripts);
 
+    let extraPythonWheels: string[] = [];
+    fs.readdirSync('../src/staging/extra').forEach(file => {
+      extraPythonWheels.push(`s3://${this.sourceDataBucket.bucketName}/scripts/extra/${file}`)
+    });
+
     let availableProvisioningScripts: string[] = []
     fs.readdirSync('../src/provisioning/').forEach(file => {
       let filenameSplit = file.split('.py')
@@ -146,6 +151,7 @@ export class DAPBaseStack extends Stack {
           name: `DAPStg${assetKey}`,
           defaultArguments: {
             "--source_bucket": this.sourceDataBucket.bucketName,
+            "--extra-py-files": extraPythonWheels.join()
           }
         });
       }
