@@ -1,6 +1,6 @@
 MinsaVacunacion:
   Name: minsa_vacunacion
-  URI: https://cloud.minsa.gob.pe/s/To2QtqoNjKqobfw/download
+  URI: https://cloud.minsa.gob.pe/s/oHF5JSLEk8KzpPW/download
   Filename: minsa_vacunacion.7z
   CronExpression: '00 05 * * ? *'
 MinsaFallecidosCovid:

@@ -18,11 +18,16 @@ df_sf = pd.read_csv(data_io, sep='|', dtype=str)
 df_sf['PAIS DOMICILIO'] = df_sf['PAIS DOMICILIO'].str.strip()
 df_sf['FECHA'] = pd.to_datetime(df_sf['FECHA'], format='%Y-%m-%d')
 df_clean = df_sf.loc[:, ~df_sf.columns.str.contains('^Unnamed')]
+df_clean.to_csv('clean.csv', sep=';', index=False)
 
-s3_out_key = "s3://{0}/staging/sinadef_fallecidos/sinadef_fallecidos.csv".format(source_bucket)
-df_clean.to_csv(s3_out_key, sep=';', index=False)
+del df_clean
+
+s3_out_key = "staging/sinadef_fallecidos/sinadef_fallecidos.csv"
+s3.upload_file('clean.csv', source_bucket, s3_out_key)
+
 
 tz_offset = -5.0  # Lima time (UTC-05:00)
 tzinfo = timezone(timedelta(hours=tz_offset))
 now = datetime.now(tzinfo)
-s3_archive_key = "s3://{0}/archive/sinadef_fallecidos/{1}.csv".format(source_bucket, now.strftime('%Y%m%d%H%M%S'))
+s3_archive_key = "archive/sinadef_fallecidos/{0}.csv".format(now.strftime('%Y%m%d%H%M%S'))
+s3.upload_file('clean.csv', source_bucket, s3_archive_key)
